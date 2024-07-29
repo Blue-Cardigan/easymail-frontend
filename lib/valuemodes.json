@@ -1,0 +1,11 @@
+{
+  "Settler": {
+    "description": "You value family, tradition, and security. You prefer stability and are cautious about change."
+  },
+  "Prospector": {
+    "description": "You're ambitious, success-driven, and enjoy recognition. You embrace trends and are optimistic about the future."
+  },
+  "Pioneer": {
+    "description": "You're a big-picture thinker, passionate about social and environmental issues. You value fairness and welcome positive change."
+  }
+}

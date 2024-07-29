@@ -1,0 +1,35 @@
+{
+  "Settler": {
+    "Tones": [
+      "Respectful",
+      "Traditional",
+      "Cautious",
+      "Practical",
+      "Community-minded",
+      "Protective",
+      "Dependable"
+    ]
+  },
+  "Prospector": {
+    "Tones": [
+      "Ambitious",
+      "Confident",
+      "Innovative",
+      "Persuasive",
+      "Results-oriented",
+      "Optimistic",
+      "Adaptable"
+    ]
+  },
+  "Pioneer": {
+    "Tones": [
+      "Visionary",
+      "Ethical",
+      "Empathetic",
+      "Progressive",
+      "Collaborative",
+      "Inquisitive",
+      "Inclusive"
+    ]
+  }
+}
