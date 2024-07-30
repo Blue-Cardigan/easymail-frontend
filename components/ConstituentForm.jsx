@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -10,8 +9,7 @@ import valuemodes from '@/lib/valuemodes.json'
 import tones from '@/lib/tones.json'
 import mpsData from '@/lib/mps.json'
 
-export function ConstituentForm({ campaignId, campaignData }) {
-  const router = useRouter()
+export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitting }) {
   const [constituencySearch, setConstituencySearch] = useState('')
   const [selectedConstituency, setSelectedConstituency] = useState(null)
   const [suggestions, setSuggestions] = useState([])
@@ -38,6 +36,11 @@ export function ConstituentForm({ campaignId, campaignData }) {
     }
   }, [selectedValuemode])
 
+  useEffect(() => {
+    // You can use campaignData here to set up any campaign-specific state
+    console.log('Campaign Data:', campaignData)
+  }, [campaignData])
+
   const handleConstituencySearch = (e) => {
     const value = e.target.value
     setConstituencySearch(value)
@@ -53,11 +56,11 @@ export function ConstituentForm({ campaignId, campaignData }) {
     }
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
     const newErrors = {}
 
-    if (!selectedConstituency) newErrors.constituency = 'Constituency is required'
+    if (!selectedConstituency && campaignData.target === 'national') newErrors.constituency = 'Constituency is required'
     if (!age) newErrors.age = 'Age is required'
     if (!selectedValuemode) newErrors.valuemode = 'Please select your values'
     if (selectedTones.length === 0) newErrors.tones = 'Please select at least one tone'
@@ -68,16 +71,14 @@ export function ConstituentForm({ campaignId, campaignData }) {
     }
 
     const formData = {
-      campaignId,
-      constituency: selectedConstituency.constituency,
-      mp: selectedConstituency.name,
-      mpEmail: selectedConstituency.email,
+      constituency: selectedConstituency ? selectedConstituency.constituency : campaignData.target,
+      mp: selectedConstituency ? selectedConstituency.name : '',
       age,
       valuemode: selectedValuemode,
       tones: selectedTones
     }
 
-    router.push(`/campaign/${campaignId}/response?data=${encodeURIComponent(JSON.stringify(formData))}`)
+    onSubmit(formData)
   }
 
   const handleToneSelection = (tone) => {
@@ -95,41 +96,53 @@ export function ConstituentForm({ campaignId, campaignData }) {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Campaign Letter Generator</CardTitle>
-        <CardDescription>Enter some basic information and we'll tailor a letter for you to send to your MP.</CardDescription>
+        <CardTitle>{campaignData.campaign_name}</CardTitle>
+        <CardDescription>{campaignData.summary}</CardDescription>
       </CardHeader>
       <CardContent>
         <form className="grid gap-6" onSubmit={handleSubmit}>
           <div className="grid gap-2">
-            <Label htmlFor="constituency">Constituency or MP*</Label>
-            <div className="relative">
+            <Label htmlFor="constituency">
+              {campaignData.target === 'national' ? 'Constituency or MP*' : campaignData.target}
+            </Label>
+            {campaignData.target === 'national' ? (
+              <div className="relative">
+                <Input
+                  id="constituency"
+                  type="text"
+                  placeholder="Start typing your MP's name or constituency"
+                  value={constituencySearch}
+                  onChange={handleConstituencySearch}
+                  className={errors.constituency ? 'border-red-500' : ''}
+                />
+                {suggestions.length > 0 && (
+                  <ul className="absolute z-10 w-full bg-white border border-gray-300 mt-1 max-h-60 overflow-auto">
+                    {suggestions.map((suggestion) => (
+                      <li
+                        key={suggestion.id}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setSelectedConstituency(suggestion)
+                          setConstituencySearch(suggestion.searchString)
+                          setSuggestions([])
+                          setErrors(prev => ({ ...prev, constituency: '' }))
+                        }}
+                      >
+                        {suggestion.searchString}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : (
               <Input
                 id="constituency"
                 type="text"
-                placeholder="Start typing your MP's name or constituency"
-                value={constituencySearch}
-                onChange={handleConstituencySearch}
-                className={errors.constituency ? 'border-red-500' : ''}
+                value={campaignData.target}
+                readOnly
+                className="bg-gray-100"
               />
-              {suggestions.length > 0 && (
-                <ul className="absolute z-10 w-full bg-white border border-gray-300 mt-1 max-h-60 overflow-auto">
-                  {suggestions.map((suggestion) => (
-                    <li
-                      key={suggestion.id}
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => {
-                        setSelectedConstituency(suggestion)
-                        setConstituencySearch(suggestion.searchString)
-                        setSuggestions([])
-                        setErrors(prev => ({ ...prev, constituency: '' }))
-                      }}
-                    >
-                      {suggestion.searchString}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            )}
             {errors.constituency && <span className="text-red-500 text-sm">{errors.constituency}</span>}
           </div>
           <div className="grid gap-2">
@@ -191,8 +204,8 @@ export function ConstituentForm({ campaignId, campaignData }) {
         </form>
       </CardContent>
       <CardFooter className="flex justify-end">
-        <Button type="submit" onClick={handleSubmit}>
-          Generate Letter
+        <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
+          {isSubmitting ? 'Generating...' : `Generate Letter for ${campaignData.campaign_name}`}
         </Button>
       </CardFooter>
     </Card>
