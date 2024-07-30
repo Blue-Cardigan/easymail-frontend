@@ -2,27 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 export default function ResponsePage({ campaignId, initialResponse }) {
   const [response, setResponse] = useState(initialResponse)
   const [copied, setCopied] = useState(false)
   const [mailtoLink, setMailtoLink] = useState('')
-
-  useEffect(() => {
-    if (response && !response.letter) {
-      const fetchLetter = async () => {
-        try {
-          const res = await fetch(`/api/campaign/${campaignId}/response?id=${response.id}`)
-          if (!res.ok) throw new Error('Failed to fetch letter')
-          const data = await res.json()
-          setResponse(data)
-        } catch (error) {
-          console.error('Error fetching letter:', error)
-        }
-      }
-      fetchLetter()
-    }
-  }, [response, campaignId])
 
   useEffect(() => {
     if (response && response.letter) {
@@ -50,6 +35,9 @@ export default function ResponsePage({ campaignId, initialResponse }) {
           <CardTitle>Your Generated Letter - Campaign {campaignId}</CardTitle>
         </CardHeader>
         <CardContent>
+            <div className="space-y-2">
+              <p className="font-semibold">Option 1: Copy and paste the letter</p>
+            </div>
           <div 
             className="relative cursor-pointer mb-4"
             onClick={handleCopyText}
@@ -67,22 +55,30 @@ export default function ResponsePage({ campaignId, initialResponse }) {
               </div>
             )}
           </div>
-          <div className="text-sm">
-            <p><strong>Instructions:</strong></p>
-            <ol className="list-decimal list-inside space-y-2">
-              <li>Click on the text above to copy the letter{!response.letter && " once it's generated"}.</li>
-              <li>
-                {response.letter ? (
-                  <>
-                    Click <a href={mailtoLink} className="text-blue-600 hover:underline">here</a> to open your email client with the letter pre-filled, or manually email your MP at: <strong>{response.mpEmail}</strong>
-                  </>
-                ) : (
-                  <>Email your MP at: <strong>{response.mpEmail}</strong></>
-                )}
-              </li>
-              <li>Add your name at the bottom of the letter where it says "[Your Name]".</li>
-              <li>Review the letter, make any personal adjustments if needed, then send it to your MP.</li>
-            </ol>
+          <li>Send the letter to your MP at: <strong>{response.mpEmail}</strong></li>
+          <div className="text-sm space-y-4">
+            <div className="space-y-2">
+              <p className="font-semibold">Option 2: Open in your email client</p>
+              {response.letter ? (
+                <Button 
+                  as="a" 
+                  href={mailtoLink} 
+                  className="w-full"
+                  variant="outline"
+                >
+                  Click here to open your email client with the letter pre-filled
+                </Button>
+              ) : (
+                <p>Email link will be available once the letter is generated.</p>
+              )}
+            </div>
+            <div className="mt-4 p-2 bg-yellow-100 rounded-md">
+              <p className="font-semibold">Important:</p>
+              <ul className="list-disc list-inside">
+                <li>Add your name at the bottom of the letter where it says "[Your Name]".</li>
+                <li>Review the letter and make any personal adjustments if needed.</li>
+              </ul>
+            </div>
           </div>
         </CardContent>
       </Card>
