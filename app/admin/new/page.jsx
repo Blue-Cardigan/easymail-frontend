@@ -1,61 +1,66 @@
-'use client'
+"use client"
 
+import { useState } from 'react'
+import DesignCampaign from '@/components/DesignCampaign'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Alert } from '@/components/ui/alert'
 
-export default function NewCampaign() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAuthorized, setIsAuthorized] = useState(false)
+export default function CampaignDesignPage({ params }) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const router = useRouter()
 
-  useEffect(() => {
-    function checkAuthorization() {
-      try {
-        // Check for the isLoggedIn cookie
-        const isLoggedIn = document.cookie.split('; ').find(row => row.startsWith('isLoggedIn='))?.split('=')[1] === 'true'
+  const defaultCampaignData = {
+    campaign_name: '',
+    name: '',
+    campaign_objectives: '',
+    evidence_data: '',
+    current_status: '',
+    desired_response: '',
+    local_relevance: '',
+    docs: []
+  }
 
-        if (!isLoggedIn) {
-          router.push('/login')
-          return
-        }
+  const handleSubmit = async (formData) => {
+    setIsSubmitting(true)
+    setError(null)
 
-        // For now, we'll consider the user authorized if they're logged in
-        setIsAuthorized(true)
-      } catch (error) {
-        console.error('Authorization check failed:', error)
-        setError('Failed to verify authorization. Please try again.')
-      } finally {
-        setIsLoading(false)
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/updateCampaigns`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`
+        },
+        body: JSON.stringify({ ...formData }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update campaign')
       }
+
+      const result = await response.json()
+      console.log('Campaign updated successfully. New campaign ID:', result)
+      router.push(`/admin/${params.id}/share`)
+    } catch (error) {
+      console.error('Error updating campaign:', error)
+      setError('Failed to update campaign. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
-
-    checkAuthorization()
-  }, [router])
-
-  const handleCreateCampaign = () => {
-    const newId = Math.random().toString(36).substr(2, 9)
-    router.push(`/admin/${newId}`)
-  }
-
-  if (isLoading) {
-    return <div>Checking authorization...</div>
-  }
-
-  if (error) {
-    return <Alert variant="destructive">{error}</Alert>
-  }
-
-  if (!isAuthorized) {
-    return <Alert>You are not authorized to create a new campaign.</Alert>
   }
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Create New Campaign</h1>
-      <Button onClick={handleCreateCampaign}>Create Campaign</Button>
+      {error && <div className="text-red-500 mb-4">{error}</div>}
+      <DesignCampaign 
+        campaignId={params.id} 
+        initialData={defaultCampaignData} 
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+      />
     </div>
   )
 }

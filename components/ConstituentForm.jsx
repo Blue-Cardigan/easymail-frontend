@@ -72,7 +72,6 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
 
     const formData = {
       constituency: selectedConstituency ? selectedConstituency.constituency : campaignData.target,
-      mp: selectedConstituency ? selectedConstituency.name : '',
       age,
       valuemode: selectedValuemode,
       tones: selectedTones

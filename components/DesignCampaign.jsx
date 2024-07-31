@@ -12,7 +12,7 @@ import { updateCampaign } from '@/lib/supabase'
 
 export default function CampaignPromptDesigner({ campaignId, initialData, onSubmit, isSubmitting }) {
   const [formData, setFormData] = useState(initialData)
-  const [templates, setTemplates] = useState([])
+  const [parsedTemplates, setParsedTemplates] = useState([])
   const [uploadError, setUploadError] = useState(null)
   const [submitError, setSubmitError] = useState(null)
 
@@ -47,37 +47,45 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
   }
 
   const onDrop = async (acceptedFiles) => {
-    if (templates.length + acceptedFiles.length > 3) {
-      setUploadError('You can only upload up to 3 templates.')
-      return
+    if (parsedTemplates.length + acceptedFiles.length > 3) {
+      setUploadError('You can only upload up to 3 templates.');
+      return;
     }
 
-    setUploadError(null)
+    setUploadError(null);
 
-    const processFile = async (file) => {
-      if (file.type === 'application/pdf') {
-        return await parsePdf(file)
-      } else if (file.type.includes('word')) {
-        return await parseWord(file)
-      } else {
-        throw new Error('Unsupported file type')
-      }
-    }
+    const processFile = (file) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          resolve({
+            name: file.name,
+            content: e.target.result
+          });
+        };
+        reader.onerror = (error) => reject(error);
+        reader.readAsText(file);
+      });
+    };
 
     try {
-      const newTemplates = await Promise.all(acceptedFiles.map(processFile))
-      setTemplates(prev => [...prev, ...newTemplates])
+      const newTemplates = await Promise.all(acceptedFiles.map(processFile));
+      setParsedTemplates(prev => [...prev, ...newTemplates]);
+      setFormData(prev => ({
+        ...prev,
+        docs: [...(prev.docs || []), ...newTemplates]
+      }));
     } catch (error) {
-      setUploadError(`Error processing files: ${error.message}`)
+      setUploadError(`Error processing files: ${error.message}`);
     }
   }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'application/pdf': ['.pdf'],
       'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt']
     },
     maxFiles: 3
   })
@@ -180,11 +188,11 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
                 <p>Drag 'n' drop some files here, or click to select files</p>
               )}
             </div>
-            {templates.length > 0 && (
+            {parsedTemplates.length > 0 && (
               <div>
                 <p>Uploaded templates:</p>
                 <ul>
-                  {templates.map((template, index) => (
+                  {parsedTemplates.map((template, index) => (
                     <li key={index}>{template.name}</li>
                   ))}
                 </ul>

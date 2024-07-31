@@ -25,7 +25,7 @@ export default function ExistingCampaignModal({ onClose }) {
       if (error) throw error
 
       if (data) {
-        router.push(`/campaign/${campaignId}`)
+        router.push(`/${campaignId}`)
       } else {
         setError('Campaign not found')
       }

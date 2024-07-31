@@ -52,7 +52,7 @@ export default function LetterGeneratorPage({ params }) {
           'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
-          campaignId: params.id,
+          campaignID: params.id,
           formData
         }),
       })
@@ -62,7 +62,7 @@ export default function LetterGeneratorPage({ params }) {
       }
 
       const result = await response.json()
-      router.push(`/campaign/${params.id}/response/${result.id}`)
+      router.push(`/result/${result.id}`)
     } catch (error) {
       console.error('Error generating letter:', error)
       setError('Failed to generate letter. Please try again.')
