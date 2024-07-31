@@ -31,9 +31,7 @@ export default function CampaignDesignPage({ params }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${supabaseAnonKey}`
         },
-        body: JSON.stringify({
-          ...formData
-        }),
+        body: JSON.stringify({ formData }),
       })
 
       if (!response.ok) {
