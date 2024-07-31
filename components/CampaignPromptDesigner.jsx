@@ -8,26 +8,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import * as pdfjsLib from 'pdfjs-dist'
 import { updateCampaign } from '@/lib/supabase'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
-
-export default function CampaignPromptDesigner({ initialData }) {
-  const [formData, setFormData] = useState({
-    campaign_name: '',
-    name: '',
-    campaign_objectives: '',
-    evidence_data: '',
-    current_status: '',
-    desired_response: '',
-    local_relevance: '',
-    ...initialData
-  })
+export default function CampaignPromptDesigner({ campaignId, initialData, onSubmit, isSubmitting }) {
+  const [formData, setFormData] = useState(initialData)
   const [templates, setTemplates] = useState([])
   const [uploadError, setUploadError] = useState(null)
   const [submitError, setSubmitError] = useState(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (initialData) {
@@ -48,19 +35,14 @@ export default function CampaignPromptDesigner({ initialData }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setIsSubmitting(true)
     setSubmitError(null)
 
     try {
       console.log('Submitting form data:', formData)
-      const result = await updateCampaign(formData)
-      console.log('Campaign created successfully:', result)
-      // Handle successful creation (e.g., show success message, redirect)
+      onSubmit(formData)
     } catch (error) {
       console.error('Error creating campaign:', error)
       setSubmitError(error.message || 'An error occurred while creating the campaign')
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
@@ -107,7 +89,7 @@ export default function CampaignPromptDesigner({ initialData }) {
         <CardDescription>Design your campaign prompt by answering the following questions.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <Label htmlFor="campaign_name">Campaign Name</Label>
             <Input
@@ -222,53 +204,10 @@ export default function CampaignPromptDesigner({ initialData }) {
         </form>
       </CardContent>
       <CardFooter>
-        <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
+        <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
           {isSubmitting ? 'Submitting...' : 'Submit Campaign Prompt'}
         </Button>
       </CardFooter>
     </Card>
   )
-}
-
-async function parsePdf(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = async (event) => {
-      try {
-        const typedArray = new Uint8Array(event.target.result)
-        const pdf = await pdfjsLib.getDocument(typedArray).promise
-        let fullText = ''
-
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i)
-          const content = await page.getTextContent()
-          const pageText = content.items.map(item => item.str).join(' ')
-          fullText += pageText + '\n'
-        }
-
-        resolve({ name: file.name, content: fullText })
-      } catch (error) {
-        reject(error)
-      }
-    }
-    reader.onerror = (error) => reject(error)
-    reader.readAsArrayBuffer(file)
-  })
-}
-
-async function parseWord(file) {
-  const formData = new FormData()
-  formData.append('file', file)
-
-  const response = await fetch('/api/parse-word', {
-    method: 'POST',
-    body: formData
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to parse Word document')
-  }
-
-  const result = await response.json()
-  return { name: file.name, content: result.content }
 }

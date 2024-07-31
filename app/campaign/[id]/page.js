@@ -36,7 +36,6 @@ export default function LetterGeneratorPage({ params }) {
     try {
       const data = await getCampaignDetails(params.id)
       setCampaignData(data)
-      console.log('Campaign data:', data)
     } catch (err) {
       console.error('Error fetching campaign details:', err)
       setError(err.message)
@@ -45,7 +44,6 @@ export default function LetterGeneratorPage({ params }) {
 
   const handleSubmit = async (formData) => {
     setIsSubmitting(true)
-    console.log('formData', formData)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generateLetter`, {
         method: 'POST',
@@ -54,7 +52,7 @@ export default function LetterGeneratorPage({ params }) {
           'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
-          // campaignId: params.id,
+          campaignId: params.id,
           formData
         }),
       })
