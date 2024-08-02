@@ -75,7 +75,6 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
     const newErrors = {}
 
     if (!selectedConstituency && campaignData.target === 'national') newErrors.constituency = 'Constituency is required'
-    if (!age) newErrors.age = 'Age is required'
     if (selectedReasons.length === 0) newErrors.reason = 'Please select at least one reason'
     if (selectedTones.length === 0) newErrors.tones = 'Please select at least one tone'
 
@@ -87,7 +86,7 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
     const formData = {
       constituency: selectedConstituency ? selectedConstituency.constituency : campaignData.target,
       mpEmail: selectedConstituency ? selectedConstituency.email : null,
-      age,
+      age: age || null,
       reasons: selectedReasons.map(reason => `${reason} - ${reasons[reason]}`),
       tones: selectedTones
     }
@@ -108,7 +107,7 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-3xl mx-auto">
       <CardHeader>
         <CardTitle>{campaignData.campaign_name}</CardTitle>
         <CardDescription>{campaignData.summary}</CardDescription>
@@ -117,7 +116,7 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
         <form className="grid gap-6" onSubmit={handleSubmit}>
           <div className="grid gap-2">
             <Label htmlFor="constituency">
-              {campaignData.target === 'national' ? 'Constituency or MP*' : campaignData.target}
+              {campaignData.target === 'national' ? 'Find Your Constituency or MP*' : campaignData.target}
             </Label>
             {campaignData.target === 'national' ? (
               <div className="relative">
@@ -160,11 +159,11 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
             {errors.constituency && <span className="text-red-500 text-sm">{errors.constituency}</span>}
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="age">Age*</Label>
+            <Label htmlFor="age">Your Age (Optional)</Label>
             <Input 
               id="age" 
               type="number" 
-              placeholder="Enter your age" 
+              placeholder="Enter your age (optional)" 
               value={age}
               onChange={(e) => {
                 setAge(e.target.value)
@@ -175,8 +174,8 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
             {errors.age && <span className="text-red-500 text-sm">{errors.age}</span>}
           </div>
           <div className="grid gap-2">
-            <Label>Why is this campaign important to you? (Select up to 2)*</Label>
-            <div className="grid grid-cols-1 gap-2">
+            <Label>Why Is This Campaign Important To You? (Select up to 2)*</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {Object.entries(reasons).map(([reason, description]) => (
                 <Button
                   key={reason}

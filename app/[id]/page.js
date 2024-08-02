@@ -101,7 +101,6 @@ export default function LetterGeneratorPage({ params }) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-      <h1 className="text-2xl font-bold mb-4">Generate Letter for Campaign: {campaignData.campaign_name}</h1>
       <ConstituentForm 
         campaignId={params.id} 
         campaignData={campaignData} 

@@ -1,4 +1,7 @@
 const nextConfig = {
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  },
   webpack: (config, { isServer }) => {
     config.resolve.alias.canvas = false
 
