@@ -4,12 +4,11 @@ import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
-export default function ClientResponse({ campaignId }) {
+export default function ClientResponse({ campaignId, shareableUrl }) {
   const [copied, setCopied] = useState(false)
-  const shareableLink = `easymail.com/${campaignId}`
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(shareableLink).then(() => {
+    navigator.clipboard.writeText(shareableUrl).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
@@ -28,7 +27,7 @@ export default function ClientResponse({ campaignId }) {
             onClick={handleCopyLink}
           >
             <pre className="whitespace-pre-wrap p-4 bg-gray-100 rounded-md text-center">
-              {shareableLink}
+              {shareableUrl}
             </pre>
             {copied && (
               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white rounded-md">

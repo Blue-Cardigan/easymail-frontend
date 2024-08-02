@@ -8,13 +8,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { updateCampaign } from '@/lib/supabase'
+import { PlusCircle, X, FileText, Upload } from 'lucide-react'
 
 export default function CampaignPromptDesigner({ campaignId, initialData, onSubmit, isSubmitting }) {
   const [formData, setFormData] = useState(initialData)
   const [parsedTemplates, setParsedTemplates] = useState([])
   const [uploadError, setUploadError] = useState(null)
   const [submitError, setSubmitError] = useState(null)
+  const [showPlaintextInput, setShowPlaintextInput] = useState(false)
+  const [plaintextTemplate, setPlaintextTemplate] = useState("")
+  const [templates, setTemplates] = useState([])
+  const [currentTemplate, setCurrentTemplate] = useState({ type: null, content: '' })
 
   useEffect(() => {
     if (initialData) {
@@ -46,38 +50,59 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     }
   }
 
-  const onDrop = async (acceptedFiles) => {
-    if (parsedTemplates.length + acceptedFiles.length > 3) {
-      setUploadError('You can only upload up to 3 templates.');
-      return;
-    }
+  const handlePlaintextToggle = () => {
+    setShowPlaintextInput(!showPlaintextInput)
+  }
 
-    setUploadError(null);
+  const handlePlaintextChange = (e) => {
+    setPlaintextTemplate(e.target.value)
+  }
 
-    const processFile = (file) => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          resolve({
-            name: file.name,
-            content: e.target.result
-          });
-        };
-        reader.onerror = (error) => reject(error);
-        reader.readAsText(file);
-      });
-    };
-
-    try {
-      const newTemplates = await Promise.all(acceptedFiles.map(processFile));
-      setParsedTemplates(prev => [...prev, ...newTemplates]);
+  const handlePlaintextSubmit = () => {
+    if (plaintextTemplate.trim()) {
+      const newTemplate = {
+        name: `Plaintext Template ${parsedTemplates.length + 1}`,
+        content: plaintextTemplate.trim()
+      }
+      setParsedTemplates(prev => [...prev, newTemplate])
       setFormData(prev => ({
         ...prev,
-        docs: [...(prev.docs || []), ...newTemplates]
-      }));
-    } catch (error) {
-      setUploadError(`Error processing files: ${error.message}`);
+        docs: [...(prev.docs || []), newTemplate]
+      }))
+      setPlaintextTemplate("")
     }
+  }
+
+  const addTemplate = (type, content = '') => {
+    if (templates.length >= 3) {
+      setUploadError('You can only add up to 3 templates.')
+      return
+    }
+    setTemplates([...templates, { type, content }])
+    setCurrentTemplate({ type: null, content: '' })
+  }
+
+  const removeTemplate = (index) => {
+    setTemplates(templates.filter((_, i) => i !== index))
+  }
+
+  const onDrop = async (acceptedFiles) => {
+    if (templates.length + acceptedFiles.length > 3) {
+      setUploadError('You can only add up to 3 templates.')
+      return
+    }
+
+    const processFile = async (file) => {
+      const content = await new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = (e) => resolve(e.target.result)
+        reader.readAsText(file)
+      })
+      return { type: 'file', content, name: file.name }
+    }
+
+    const newTemplates = await Promise.all(acceptedFiles.map(processFile))
+    setTemplates([...templates, ...newTemplates])
   }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -87,7 +112,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'text/plain': ['.txt']
     },
-    maxFiles: 3
+    maxFiles: 3 - templates.length
   })
 
   return (
@@ -109,101 +134,106 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="name">Your Name</Label>
-            <Input
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="campaign_objectives">Campaign Objectives and Key Issues</Label>
+            <Label htmlFor="campaign_objectives">Short Description</Label>
             <Textarea
               id="campaign_objectives"
               name="campaign_objectives"
-              placeholder="What are the primary objectives of your campaign, and what specific issues are you aiming to address through this initiative?"
-              value={formData.campaign_objectives}
+              placeholder="Provide a short description of the campaign and its objectives to display at the top of the campaign page (100 words max)."
+              value={formData.short_description}
               onChange={handleChange}
               className="min-h-[100px]"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="evidence_data">Evidence and Supporting Data</Label>
+            <Label htmlFor="evidence_data">Long Description</Label>
             <Textarea
               id="evidence_data"
               name="evidence_data"
-              placeholder="Could you provide detailed evidence or data supporting the urgency of this issue, such as statistics, scientific studies, or expert opinions?"
-              value={formData.evidence_data}
+              placeholder="Paste full campaign description here (1500 words max)."
+              value={formData.long_description}
               onChange={handleChange}
               className="min-h-[100px]"
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="current_status">Current Status and Political Actions</Label>
-            <Textarea
-              id="current_status"
-              name="current_status"
-              placeholder="What is the current status of the issue within the political landscape, and what actions (if any) have been taken by the government or relevant authorities so far?"
-              value={formData.current_status}
-              onChange={handleChange}
-              className="min-h-[100px]"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="desired_response">Desired Political Response</Label>
-            <Textarea
-              id="desired_response"
-              name="desired_response"
-              placeholder="What specific actions or responses are you seeking from MPs? For example, are you asking them to write to a particular government official, support a policy change, or raise the issue in parliamentary discussions?"
-              value={formData.desired_response}
-              onChange={handleChange}
-              className="min-h-[100px]"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="local_relevance">Constituent Impact and Local Relevance</Label>
-            <Textarea
-              id="local_relevance"
-              name="local_relevance"
-              placeholder="How does this issue impact constituents in the MPs' constituencies, and are there any local examples or testimonials that could highlight the significance and urgency of the issue?"
-              value={formData.local_relevance}
-              onChange={handleChange}
-              className="min-h-[100px]"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Upload Letter Templates (up to 3)</Label>
-            <div {...getRootProps()} className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer">
-              <input {...getInputProps()} />
-              {isDragActive ? (
-                <p>Drop the files here ...</p>
-              ) : (
-                <p>Drag 'n' drop some files here, or click to select files</p>
-              )}
-            </div>
-            {parsedTemplates.length > 0 && (
-              <div>
-                <p>Uploaded templates:</p>
-                <ul>
-                  {parsedTemplates.map((template, index) => (
-                    <li key={index}>{template.name}</li>
-                  ))}
-                </ul>
+          
+          <div className="space-y-4">
+            <Label>Letter Templates (up to 3)</Label>
+            
+            {templates.map((template, index) => (
+              <div key={index} className="flex items-center space-x-2 p-2 bg-gray-100 rounded">
+                <FileText size={20} />
+                <span className="flex-grow truncate">
+                  {template.type === 'file' ? template.name : `Pasted Template ${index + 1}`}
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => removeTemplate(index)}
+                >
+                  <X size={20} />
+                </Button>
+              </div>
+            ))}
+
+            {templates.length < 3 && (
+              <div className="space-y-4">
+                {currentTemplate.type === null ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Button 
+                      type="button" 
+                      onClick={() => setCurrentTemplate({ type: 'paste', content: '' })}
+                      className="w-full h-24 flex flex-col items-center justify-center"
+                    >
+                      <PlusCircle className="mb-2" size={24} />
+                      <span>Paste Text</span>
+                    </Button>
+                    <div 
+                      {...getRootProps()} 
+                      className="w-full h-24 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
+                    >
+                      <input {...getInputProps()} />
+                      <Upload size={24} className="mb-2" />
+                      <p>{isDragActive ? "Drop files here" : "Upload File"}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Textarea
+                      placeholder="Paste your template text here..."
+                      value={currentTemplate.content}
+                      onChange={(e) => setCurrentTemplate({ ...currentTemplate, content: e.target.value })}
+                      className="min-h-[100px]"
+                    />
+                    <div className="flex justify-end space-x-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setCurrentTemplate({ type: null, content: '' })}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="button" 
+                        onClick={() => addTemplate('paste', currentTemplate.content)}
+                        disabled={!currentTemplate.content.trim()}
+                      >
+                        Add Template
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+
             {uploadError && (
               <Alert variant="destructive">
                 <AlertDescription>{uploadError}</AlertDescription>
               </Alert>
             )}
           </div>
+          
           {submitError && (
             <Alert variant="destructive">
               <AlertDescription>{submitError}</AlertDescription>

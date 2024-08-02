@@ -1,8 +1,10 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import DesignCampaign from '@/components/DesignCampaign'
 import { useRouter } from 'next/navigation'
+
+const CACHE_KEY = 'campaignFormData'
 
 export default function CampaignDesignPage({ params }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -11,16 +13,31 @@ export default function CampaignDesignPage({ params }) {
 
   const defaultCampaignData = {
     campaign_name: '',
-    name: '',
-    campaign_objectives: '',
-    evidence_data: '',
-    current_status: '',
-    desired_response: '',
-    local_relevance: '',
+    short_description: '',
+    long_description: '',
     docs: []
   }
 
-  const handleSubmit = async (formData) => {
+  const [formData, setFormData] = useState(defaultCampaignData)
+
+  // Load cached form data on component mount
+  useEffect(() => {
+    const cachedData = localStorage.getItem(CACHE_KEY)
+    if (cachedData) {
+      setFormData(JSON.parse(cachedData))
+    }
+  }, [])
+
+  // Update cache whenever form data changes
+  useEffect(() => {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(formData))
+  }, [formData])
+
+  const handleFormChange = (updatedData) => {
+    setFormData(updatedData)
+  }
+
+  const handleSubmit = async (submittedFormData) => {
     setIsSubmitting(true)
     setError(null)
 
@@ -28,25 +45,48 @@ export default function CampaignDesignPage({ params }) {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-      const response = await fetch(`${supabaseUrl}/functions/v1/updateCampaigns`, {
+      // First API call to update campaign
+      const updateResponse = await fetch(`${supabaseUrl}/functions/v1/updateCampaigns`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${supabaseAnonKey}`
         },
-        body: JSON.stringify({ ...formData }),
+        body: JSON.stringify({ ...submittedFormData }),
       })
 
-      if (!response.ok) {
+      if (!updateResponse.ok) {
         throw new Error('Failed to update campaign')
       }
 
-      const result = await response.json()
-      console.log('Campaign updated successfully. New campaign ID:', result)
-      router.push(`/admin/${params.id}/share`)
+      const responseData = await updateResponse.json();
+      const campaignID = responseData[0].id;
+
+      // Second API call to make URL
+      const makeUrlResponse = await fetch(`${supabaseUrl}/functions/v1/makeURL`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`
+        },
+        body: JSON.stringify({ campaignID }),
+      })
+
+      if (!makeUrlResponse.ok) {
+        throw new Error('Failed to generate URL')
+      }
+
+      const urlResponse = await makeUrlResponse.json();
+      const url = urlResponse.url;
+
+      // Clear the cache after successful submission
+      localStorage.removeItem(CACHE_KEY)
+
+      // Navigate to share page with the generated URL
+      router.push(`/admin/${campaignID}/share?url=${url}`)
     } catch (error) {
-      console.error('Error updating campaign:', error)
-      setError('Failed to update campaign. Please try again.')
+      console.error('Error in campaign process:', error)
+      setError(`Failed to process campaign: ${error.message}`)
     } finally {
       setIsSubmitting(false)
     }
@@ -56,9 +96,10 @@ export default function CampaignDesignPage({ params }) {
     <div className="container mx-auto p-4">
       {error && <div className="text-red-500 mb-4">{error}</div>}
       <DesignCampaign 
-        campaignId={params.id} 
-        initialData={defaultCampaignData} 
+        campaignID={params.id} 
+        initialData={formData} 
         onSubmit={handleSubmit}
+        onChange={handleFormChange}
         isSubmitting={isSubmitting}
       />
     </div>

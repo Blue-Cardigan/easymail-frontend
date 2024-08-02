@@ -5,18 +5,38 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import valuemodes from '@/lib/valuemodes.json'
-import tones from '@/lib/tones.json'
 import mpsData from '@/lib/mps.json'
+
+const tones = [
+  "Urgent",
+  "Concerned",
+  "Hopeful",
+  "Determined",
+  "Respectful",
+  "Passionate",
+  "Analytical",
+  "Empathetic",
+  "Persuasive",
+  "Collaborative",
+  "Assertive",
+  "Informative",
+  "Optimistic",
+  "Critical",
+  "Pragmatic",
+  "Inspirational",
+  "Diplomatic",
+  "Authoritative",
+  "Inquisitive",
+  "Supportive"
+]
 
 export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitting }) {
   const [constituencySearch, setConstituencySearch] = useState('')
   const [selectedConstituency, setSelectedConstituency] = useState(null)
   const [suggestions, setSuggestions] = useState([])
   const [age, setAge] = useState('')
+  const [selectedReasons, setSelectedReasons] = useState([])
   const [selectedTones, setSelectedTones] = useState([])
-  const [selectedValuemode, setSelectedValuemode] = useState('')
-  const [availableTones, setAvailableTones] = useState([])
   const [errors, setErrors] = useState({})
 
   const mpConstituencies = mpsData.map(mp => ({
@@ -27,19 +47,13 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
     searchString: `${mp.Name} - ${mp.Constituency}`
   }))
 
-  useEffect(() => {
-    if (selectedValuemode) {
-      setAvailableTones(tones[selectedValuemode].Tones)
-      setSelectedTones([])
-    } else {
-      setAvailableTones([])
-    }
-  }, [selectedValuemode])
-
-  useEffect(() => {
-    // You can use campaignData here to set up any campaign-specific state
-    console.log('Campaign Data:', campaignData)
-  }, [campaignData])
+  const reasons = {
+    "Personal Impact": "This issue directly affects me or my loved ones.",
+    "Community Concern": "I'm worried about how this impacts my local community.",
+    "National Interest": "I believe this is crucial for the future of our country.",
+    "Global Significance": "This issue has worldwide implications that concern me.",
+    "Moral Imperative": "I feel a strong ethical obligation to support this cause.",
+  }
 
   const handleConstituencySearch = (e) => {
     const value = e.target.value
@@ -62,7 +76,7 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
 
     if (!selectedConstituency && campaignData.target === 'national') newErrors.constituency = 'Constituency is required'
     if (!age) newErrors.age = 'Age is required'
-    if (!selectedValuemode) newErrors.valuemode = 'Please select your values'
+    if (selectedReasons.length === 0) newErrors.reason = 'Please select at least one reason'
     if (selectedTones.length === 0) newErrors.tones = 'Please select at least one tone'
 
     if (Object.keys(newErrors).length > 0) {
@@ -72,8 +86,9 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
 
     const formData = {
       constituency: selectedConstituency ? selectedConstituency.constituency : campaignData.target,
+      mpEmail: selectedConstituency ? selectedConstituency.email : null,
       age,
-      valuemode: selectedValuemode,
+      reasons: selectedReasons.map(reason => `${reason} - ${reasons[reason]}`),
       tones: selectedTones
     }
 
@@ -160,46 +175,56 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
             {errors.age && <span className="text-red-500 text-sm">{errors.age}</span>}
           </div>
           <div className="grid gap-2">
-            <Label>Your Values*</Label>
+            <Label>Why is this campaign important to you? (Select up to 2)*</Label>
             <div className="grid grid-cols-1 gap-2">
-              {Object.entries(valuemodes).map(([mode, { description }]) => (
+              {Object.entries(reasons).map(([reason, description]) => (
                 <Button
-                  key={mode}
+                  key={reason}
                   type="button"
-                  variant={selectedValuemode === mode ? "default" : "outline"}
-                  className={`h-auto flex flex-col items-start text-left p-4 space-y-2 w-full ${errors.valuemode ? 'border-red-500' : ''}`}
+                  variant={selectedReasons.includes(reason) ? "default" : "outline"}
+                  className={`h-auto flex flex-col items-start text-left p-4 space-y-2 w-full 
+                    ${errors.reason ? 'border-red-500' : ''}
+                    ${selectedReasons.length >= 2 && !selectedReasons.includes(reason) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={selectedReasons.length >= 2 && !selectedReasons.includes(reason)}
                   onClick={() => {
-                    setSelectedValuemode(mode)
-                    setErrors(prev => ({ ...prev, valuemode: '' }))
+                    if (selectedReasons.length < 2 || selectedReasons.includes(reason)) {
+                      setSelectedReasons(prevReasons => {
+                        if (prevReasons.includes(reason)) {
+                          return prevReasons.filter(r => r !== reason)
+                        } else if (prevReasons.length < 2) {
+                          return [...prevReasons, reason]
+                        }
+                        return prevReasons
+                      })
+                      setErrors(prev => ({ ...prev, reason: '' }))
+                    }
                   }}
                 >
-                  <span className="font-bold text-lg w-full break-words">{mode}</span>
+                  <span className="font-bold text-lg w-full break-words">{reason}</span>
                   <span className="text-sm w-full whitespace-normal">{description}</span>
                 </Button>
               ))}
             </div>
-            {errors.valuemode && <span className="text-red-500 text-sm">{errors.valuemode}</span>}
+            {errors.reason && <span className="text-red-500 text-sm">{errors.reason}</span>}
           </div>
-          {selectedValuemode && (
-            <div className="grid gap-2">
-              <Label>Tone (Select up to 3)*</Label>
-              <div className="flex flex-wrap gap-2">
-                {availableTones.map((tone) => (
-                  <Button
-                    key={tone}
-                    type="button"
-                    variant={selectedTones.includes(tone) ? "default" : "outline"}
-                    className={`flex-grow-0 px-3 py-1 text-sm font-medium transition-colors ${errors.tones ? 'border-red-500' : ''}`}
-                    onClick={() => handleToneSelection(tone)}
-                    disabled={selectedTones.length >= 3 && !selectedTones.includes(tone)}
-                  >
-                    {tone}
-                  </Button>
-                ))}
-              </div>
-              {errors.tones && <span className="text-red-500 text-sm">{errors.tones}</span>}
+          <div className="grid gap-2">
+            <Label>What Tone Do You Want to Write With? (Select up to 3)*</Label>
+            <div className="flex flex-wrap gap-2">
+              {tones.map((tone) => (
+                <Button
+                  key={tone}
+                  type="button"
+                  variant={selectedTones.includes(tone) ? "default" : "outline"}
+                  className={`flex-grow-0 px-3 py-1 text-sm font-medium transition-colors ${errors.tones ? 'border-red-500' : ''}`}
+                  onClick={() => handleToneSelection(tone)}
+                  disabled={selectedTones.length >= 3 && !selectedTones.includes(tone)}
+                >
+                  {tone}
+                </Button>
+              ))}
             </div>
-          )}
+            {errors.tones && <span className="text-red-500 text-sm">{errors.tones}</span>}
+          </div>
         </form>
       </CardContent>
       <CardFooter className="flex justify-end">

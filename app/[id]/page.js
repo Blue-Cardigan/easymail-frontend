@@ -3,18 +3,17 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ConstituentForm } from '@/components/ConstituentForm'
+import ResponsePage from '@/components/ResponsePage'
 
 async function getCampaignDetails(id) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  console.log(`Fetching campaign details for id: ${id}`)
   const res = await fetch(`${supabaseUrl}/functions/v1/retrieveCampaign/${id}`, {
     headers: {
       'Authorization': `Bearer ${supabaseAnonKey}`,
       'Content-Type': 'application/json'
-    },
-    cache: 'no-store'
+    }
   })
 
   if (!res.ok) {
@@ -30,6 +29,9 @@ export default function LetterGeneratorPage({ params }) {
   const [campaignData, setCampaignData] = useState(null)
   const [error, setError] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generatedResponse, setGeneratedResponse] = useState(null)
+  const [mpEmail, setMpEmail] = useState(null)
   const router = useRouter()
 
   useState(async () => {
@@ -44,6 +46,10 @@ export default function LetterGeneratorPage({ params }) {
 
   const handleSubmit = async (formData) => {
     setIsSubmitting(true)
+    setIsGenerating(true)
+    setMpEmail(formData.mpEmail)
+    console.log('Campaign ID:', params.id)
+    console.log('Form Data:', formData)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generateLetter`, {
         method: 'POST',
@@ -62,12 +68,13 @@ export default function LetterGeneratorPage({ params }) {
       }
 
       const result = await response.json()
-      router.push(`/result/${result.id}`)
+      setGeneratedResponse(result.letter)
     } catch (error) {
       console.error('Error generating letter:', error)
       setError('Failed to generate letter. Please try again.')
     } finally {
       setIsSubmitting(false)
+      setIsGenerating(false)
     }
   }
 
@@ -77,6 +84,19 @@ export default function LetterGeneratorPage({ params }) {
 
   if (!campaignData) {
     return <div>Loading...</div>
+  }
+
+  if (isGenerating || generatedResponse) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <ResponsePage 
+          campaignId={params.id} 
+          initialResponse={generatedResponse} 
+          mpEmail={mpEmail} 
+          isGenerating={isGenerating}
+        />
+      </div>
+    )
   }
 
   return (
