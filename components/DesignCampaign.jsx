@@ -137,7 +137,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             <Label htmlFor="campaign_objectives">Short Description</Label>
             <Textarea
               id="campaign_objectives"
-              name="campaign_objectives"
+              name="short_description"
               placeholder="Provide a short description of the campaign and its objectives to display at the top of the campaign page (100 words max)."
               value={formData.short_description}
               onChange={handleChange}
@@ -149,7 +149,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             <Label htmlFor="evidence_data">Long Description</Label>
             <Textarea
               id="evidence_data"
-              name="evidence_data"
+              name="long_description"
               placeholder="Paste full campaign description here (1500 words max)."
               value={formData.long_description}
               onChange={handleChange}
@@ -180,18 +180,19 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             {templates.length < 3 && (
               <div className="space-y-4">
                 {currentTemplate.type === null ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <Button 
                       type="button" 
                       onClick={() => setCurrentTemplate({ type: 'paste', content: '' })}
-                      className="w-full h-24 flex flex-col items-center justify-center"
+                      className="w-full h-24 flex flex-col items-center justify-center bg-white text-black border border-gray-300 hover:bg-gray-100"
+                      variant="outline"
                     >
                       <PlusCircle className="mb-2" size={24} />
                       <span>Paste Text</span>
                     </Button>
                     <div 
                       {...getRootProps()} 
-                      className="w-full h-24 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
+                      className="col-span-2 w-full h-24 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
                     >
                       <input {...getInputProps()} />
                       <Upload size={24} className="mb-2" />
