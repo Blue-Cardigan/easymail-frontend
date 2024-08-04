@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -24,12 +24,14 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   const [retryCount, setRetryCount] = useState(0)
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
   const [isEditing, setIsEditing] = useState(false)
+  const [contentHeight, setContentHeight] = useState('auto')
+  const contentRef = useRef(null)
 
   const handleRetry = useCallback(async () => {
     if (retryCount < 3) {
       setIsGenerating(true)
       setError(null)
-      setLoadingMessageIndex(0)
+      setLoadingMessageIndex(retryCount) // Set loading message based on retry count
       try {
         await onRetry()
         setRetryCount(prev => prev + 1)
@@ -69,12 +71,10 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   }, [isGenerating])
 
   useEffect(() => {
-    if (response) {
-      const subject = encodeURIComponent(`Regarding Campaign ${campaignId}`)
-      const body = encodeURIComponent(isEditing ? editableResponse : response)
-      setMailtoLink(`mailto:${mpEmail || ''}?subject=${subject}&body=${body}`)
+    if (contentRef.current && !isEditing && response) {
+      setContentHeight(`${contentRef.current.scrollHeight}px`)
     }
-  }, [response, editableResponse, isEditing, campaignId, mpEmail])
+  }, [response, isEditing])
 
   const handleCopyText = () => {
     if ((isEditing ? editableResponse : response) && !error) {
@@ -94,7 +94,12 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
       return (
         <div className="flex flex-col items-center justify-center">
           <div className="w-10 h-10 border-t-2 border-b-2 border-primary rounded-full animate-spin mb-4"></div>
-          <p className="text-center">{loadingMessages[loadingMessageIndex]}</p>
+          <p className="text-center mb-2">{loadingMessages[loadingMessageIndex]}</p>
+          {retryCount > 0 && retryCount < 3 && (
+            <p className="text-sm text-gray-500">
+              Retry attempt {retryCount}/3
+            </p>
+          )}
         </div>
       )
     } else if (error) {
@@ -114,9 +119,10 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
           value={editableResponse}
           onChange={(e) => setEditableResponse(e.target.value)}
           className="min-h-[200px] w-full"
+          style={{ height: contentHeight }}
         />
       ) : (
-        response
+        <div ref={contentRef}>{response}</div>
       )
     } else {
       return "No response received yet."
@@ -140,16 +146,11 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
             )}
           </div>
           <div className="relative">
-            {(error || isGenerating) && retryCount > 0 && retryCount < 3 && (
-              <span className="absolute top-0 right-0 text-xs text-gray-500">
-                Retry attempt {retryCount}/3
-              </span>
-            )}
             <div 
               className={`relative ${!error && response && !isEditing ? 'cursor-pointer' : ''}`}
               onClick={!isEditing ? handleCopyText : undefined}
             >
-              <pre className={`whitespace-pre-wrap p-4 bg-gray-100 rounded-md min-h-[200px] ${isEditing ? '' : 'flex items-center justify-center'}`}>
+              <pre className={`whitespace-pre-wrap p-4 bg-gray-100 rounded-md ${isEditing ? '' : 'flex items-center justify-center'}`} style={{ minHeight: contentHeight }}>
                 {renderContent()}
               </pre>
               {copied && !isEditing && (
