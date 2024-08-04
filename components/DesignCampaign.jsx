@@ -119,7 +119,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle>Campaign Prompt Designer</CardTitle>
-        <CardDescription>Design your campaign prompt by answering the following questions.</CardDescription>
+        <CardDescription>Answer the following questions to design a detailed prompt for campaign supporters.</CardDescription>
       </CardHeader>
       <CardContent>
         <form className="space-y-6" onSubmit={handleSubmit}>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import DesignCampaign from '@/components/DesignCampaign'
 import { useRouter } from 'next/navigation'
+import { notFound } from 'next/navigation'
 
 const CACHE_KEY = 'campaignFormData'
 
@@ -87,6 +88,11 @@ export default function CampaignDesignPage({ params }) {
     } catch (error) {
       console.error('Error in campaign process:', error)
       setError(`Failed to process campaign: ${error.message}`)
+      
+      // If the error is due to an invalid route or unauthorized access, show the not-found page
+      if (error.message.includes('404') || error.message.includes('401')) {
+        notFound()
+      }
     } finally {
       setIsSubmitting(false)
     }

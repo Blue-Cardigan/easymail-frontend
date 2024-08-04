@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { ConstituentForm } from '@/components/ConstituentForm'
 import ResponsePage from '@/components/ResponsePage'
+import CampaignNotFound from './not-found'
 
 async function getCampaignDetails(id) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -33,15 +34,22 @@ export default function LetterGeneratorPage({ params }) {
   const [generatedResponse, setGeneratedResponse] = useState(null)
   const [mpEmail, setMpEmail] = useState(null)
   const [formData, setFormData] = useState(null)
+  const [notFound, setNotFound] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     async function fetchCampaignDetails() {
       try {
         const data = await getCampaignDetails(params.id)
-        setCampaignData(data)
+        if (data) {
+          setCampaignData(data)
+        } else {
+          setNotFound(true)
+        }
       } catch (err) {
         console.error('Error fetching campaign details:', err)
+        // Set notFound to true for any error, including 400 Bad Request
+        setNotFound(true)
         setError(err.message)
       }
     }
@@ -91,30 +99,38 @@ export default function LetterGeneratorPage({ params }) {
     setIsSubmitting(false)
   }
 
+  if (notFound) {
+    return <CampaignNotFound />
+  }
+
   if (!campaignData && !error) {
     return <div>Loading...</div>
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-      {(isGenerating || generatedResponse || error) ? (
-        <ResponsePage 
-          campaignId={params.id}
-          campaignName={campaignData.campaign_name}
-          initialResponse={generatedResponse} 
-          mpEmail={mpEmail} 
-          isGenerating={isGenerating}
-          error={error}
-          onRetry={() => generateLetter(formData)}
-        />
-      ) : (
-        <ConstituentForm 
-          campaignId={params.id} 
-          campaignData={campaignData} 
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-        />
-      )}
+      {campaignData ? (
+        (isGenerating || generatedResponse || error) ? (
+          <ResponsePage 
+            campaignId={params.id}
+            campaignName={campaignData.campaign_name}
+            initialResponse={generatedResponse} 
+            mpEmail={mpEmail} 
+            isGenerating={isGenerating}
+            error={error}
+            onRetry={() => generateLetter(formData)}
+          />
+        ) : (
+          <ConstituentForm 
+            campaignId={params.id} 
+            campaignData={campaignData} 
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+          />
+        )
+      ) : error ? (
+        <div>Error: {error}</div>
+      ) : null}
     </div>
   )
 }
