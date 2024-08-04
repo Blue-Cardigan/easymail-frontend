@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { ConstituentForm } from '@/components/ConstituentForm'
 import ResponsePage from '@/components/ResponsePage'
@@ -32,24 +32,27 @@ export default function LetterGeneratorPage({ params }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedResponse, setGeneratedResponse] = useState(null)
   const [mpEmail, setMpEmail] = useState(null)
+  const [formData, setFormData] = useState(null)
   const router = useRouter()
 
-  useState(async () => {
-    try {
-      const data = await getCampaignDetails(params.id)
-      setCampaignData(data)
-    } catch (err) {
-      console.error('Error fetching campaign details:', err)
-      setError(err.message)
+  useEffect(() => {
+    async function fetchCampaignDetails() {
+      try {
+        const data = await getCampaignDetails(params.id)
+        setCampaignData(data)
+      } catch (err) {
+        console.error('Error fetching campaign details:', err)
+        setError(err.message)
+      }
     }
+    fetchCampaignDetails()
   }, [params.id])
 
-  const handleSubmit = async (formData) => {
-    setIsSubmitting(true)
+  const generateLetter = useCallback(async (formData) => {
+    if (!formData) return
+
     setIsGenerating(true)
-    setMpEmail(formData.mpEmail)
-    console.log('Campaign ID:', params.id)
-    console.log('Form Data:', formData)
+    setError(null)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generateLetter`, {
         method: 'POST',
@@ -64,49 +67,54 @@ export default function LetterGeneratorPage({ params }) {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to generate letter')
+        const errorText = await response.text()
+        throw new Error(`Failed to generate letter: ${response.status} ${errorText}`)
       }
 
       const result = await response.json()
       setGeneratedResponse(result.letter)
     } catch (error) {
       console.error('Error generating letter:', error)
-      setError('Failed to generate letter. Please try again.')
+      setError(error.message || 'Failed to generate letter. Please try again.')
     } finally {
-      setIsSubmitting(false)
       setIsGenerating(false)
     }
+  }, [params.id])
+
+  const handleSubmit = async (submittedFormData) => {
+    setIsSubmitting(true)
+    setMpEmail(submittedFormData.mpEmail)
+    setFormData(submittedFormData)
+    console.log('Campaign ID:', params.id)
+    console.log('Form Data:', submittedFormData)
+    await generateLetter(submittedFormData)
+    setIsSubmitting(false)
   }
 
-  if (error) {
-    return <div>Error: {error}</div>
-  }
-
-  if (!campaignData) {
+  if (!campaignData && !error) {
     return <div>Loading...</div>
-  }
-
-  if (isGenerating || generatedResponse) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <ResponsePage 
-          campaignId={params.id} 
-          initialResponse={generatedResponse} 
-          mpEmail={mpEmail} 
-          isGenerating={isGenerating}
-        />
-      </div>
-    )
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-      <ConstituentForm 
-        campaignId={params.id} 
-        campaignData={campaignData} 
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-      />
+      {(isGenerating || generatedResponse || error) ? (
+        <ResponsePage 
+          campaignId={params.id}
+          campaignName={campaignData.campaign_name}
+          initialResponse={generatedResponse} 
+          mpEmail={mpEmail} 
+          isGenerating={isGenerating}
+          error={error}
+          onRetry={() => generateLetter(formData)}
+        />
+      ) : (
+        <ConstituentForm 
+          campaignId={params.id} 
+          campaignData={campaignData} 
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+        />
+      )}
     </div>
   )
 }
