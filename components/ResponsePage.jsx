@@ -26,6 +26,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   const [isEditing, setIsEditing] = useState(false)
   const [contentHeight, setContentHeight] = useState('auto')
   const contentRef = useRef(null)
+  const [originalResponse, setOriginalResponse] = useState(initialResponse)
 
   const handleRetry = useCallback(async () => {
     if (retryCount < 3) {
@@ -55,6 +56,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
     if (!initialError && initialResponse) {
       setResponse(initialResponse)
       setEditableResponse(initialResponse)
+      setOriginalResponse(initialResponse)  // Store the original response
       setRetryCount(0)
       setLoadingMessageIndex(0)
       console.log('Result:', initialResponse)
@@ -86,7 +88,17 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   }
 
   const handleEditToggle = () => {
+    if (isEditing) {
+      // Leaving edit mode
+      if (editableResponse !== response) {
+        setResponse(editableResponse)
+      }
+    }
     setIsEditing(!isEditing)
+  }
+
+  const handleResetToOriginal = () => {
+    setEditableResponse(originalResponse)
   }
 
   const renderContent = () => {
@@ -114,15 +126,28 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
         </div>
       )
     } else if (response) {
-      return isEditing ? (
-        <Textarea
-          value={editableResponse}
-          onChange={(e) => setEditableResponse(e.target.value)}
-          className="min-h-[200px] w-full"
-          style={{ height: contentHeight }}
-        />
-      ) : (
-        <div ref={contentRef}>{response}</div>
+      return (
+        <div>
+          {isEditing ? (
+            <Textarea
+              value={editableResponse}
+              onChange={(e) => setEditableResponse(e.target.value)}
+              className="min-h-[200px] w-full mb-2"
+              style={{ height: contentHeight }}
+            />
+          ) : (
+            <div ref={contentRef}>{response}</div>
+          )}
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center space-x-2">
+              <Switch id="edit-mode" checked={isEditing} onCheckedChange={handleEditToggle} />
+              <Label htmlFor="edit-mode">{isEditing ? 'Editing' : 'Click to edit'}</Label>
+            </div>
+            {isEditing && (
+              <Button onClick={handleResetToOriginal} variant="outline">Reset to Original</Button>
+            )}
+          </div>
+        </div>
       )
     } else {
       return "No response received yet."
@@ -136,28 +161,22 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
           <CardTitle>Your Generated Letter - {campaignName}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <p className="font-semibold">Your letter</p>
-            {response && !error && (
-              <div className="flex items-center space-x-2">
-                <Switch id="edit-mode" checked={isEditing} onCheckedChange={handleEditToggle} />
-                <Label htmlFor="edit-mode">{isEditing ? 'Editing' : 'Click to edit'}</Label>
+          <div>
+            <p className="font-semibold mb-2">Your letter</p>
+            <div className="relative">
+              <div 
+                className={`relative ${!error && response && !isEditing ? 'cursor-pointer' : ''}`}
+                onClick={!isEditing ? handleCopyText : undefined}
+              >
+                <pre className="whitespace-pre-wrap p-4 bg-gray-100 rounded-md">
+                  {renderContent()}
+                </pre>
+                {copied && !isEditing && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white rounded-md">
+                    Copied!
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <div className="relative">
-            <div 
-              className={`relative ${!error && response && !isEditing ? 'cursor-pointer' : ''}`}
-              onClick={!isEditing ? handleCopyText : undefined}
-            >
-              <pre className={`whitespace-pre-wrap p-4 bg-gray-100 rounded-md ${isEditing ? '' : 'flex items-center justify-center'}`} style={{ minHeight: contentHeight }}>
-                {renderContent()}
-              </pre>
-              {copied && !isEditing && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white rounded-md">
-                  Copied!
-                </div>
-              )}
             </div>
           </div>
           
@@ -174,7 +193,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
                 variant="outline"
               >
                 <a href={mailtoLink}>
-                  Click here to open your email client with the letter pre-filled
+                  Click here to create an email with the letter pre-filled
                 </a>
               </Button>
             ) : (
