@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
-export default function AuthPage() {
+export default function UserAuthPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
@@ -16,6 +16,18 @@ export default function AuthPage() {
   const [message, setMessage] = useState(null)
   const router = useRouter()
   const supabase = createClientComponentClient()
+
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        router.push('/') // Redirect to home page for users
+      }
+    })
+
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
+  }, [supabase, router])
 
   const handleEmailAuth = async (e) => {
     e.preventDefault()
@@ -30,14 +42,20 @@ export default function AuthPage() {
           password,
         })
         if (error) throw error
-        router.push('/admin/new')
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback?type=user`,
+          },
         })
         if (error) throw error
-        setMessage('Check your email for the confirmation link')
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          setMessage('An account with this email already exists.')
+        } else {
+          setMessage('Check your email for the confirmation link.')
+        }
       }
     } catch (error) {
       setError(error.message)
@@ -54,7 +72,8 @@ export default function AuthPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'https://www.googleapis.com/auth/gmail.send',
+          redirectTo: `${window.location.origin}/auth/callback?type=user`,
         },
       })
       if (error) throw error
@@ -93,7 +112,11 @@ export default function AuthPage() {
         </form>
 
         <Button 
-          onClick={() => setIsLogin(!isLogin)} 
+          onClick={() => {
+            setIsLogin(!isLogin)
+            setError(null)
+            setMessage(null)
+          }} 
           variant="link" 
           className="w-full mb-4"
         >

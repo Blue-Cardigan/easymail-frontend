@@ -93,8 +93,6 @@ export default function LetterGeneratorPage({ params }) {
     setIsSubmitting(true)
     setMpEmail(submittedFormData.mpEmail)
     setFormData(submittedFormData)
-    console.log('Campaign ID:', params.id)
-    console.log('Form Data:', submittedFormData)
     await generateLetter(submittedFormData)
     setIsSubmitting(false)
   }

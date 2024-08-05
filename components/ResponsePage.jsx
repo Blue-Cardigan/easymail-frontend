@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Alert } from "@/components/ui/alert"
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 const loadingMessages = [
   "Generating your letter...",
@@ -27,6 +29,69 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   const [contentHeight, setContentHeight] = useState('auto')
   const contentRef = useRef(null)
   const [originalResponse, setOriginalResponse] = useState(initialResponse)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
+  const [emailSentMessage, setEmailSentMessage] = useState(null)
+  const supabase = createClientComponentClient()
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setIsLoggedIn(!!session)
+    }
+    checkLoginStatus()
+  }, [supabase.auth])
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/gmail.send',
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      })
+      if (error) throw error
+    } catch (error) {
+      setError('Failed to initiate Google login. Please try again.')
+    }
+  }
+
+  const handleSendEmail = async () => {
+    setIsSendingEmail(true)
+    setError(null)
+    setEmailSentMessage(null)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        throw new Error('Not logged in')
+      }
+
+      const response = await fetch(`/api/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: mpEmail,
+          subject: `Regarding ${campaignName}`,
+          body: editableResponse || response,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send email')
+      }
+
+      setEmailSentMessage('Email sent successfully!')
+    } catch (error) {
+      setError('Failed to send email. Please try again or use your email client.')
+    } finally {
+      setIsSendingEmail(false)
+    }
+  }
 
   const handleRetry = useCallback(async () => {
     if (retryCount < 3) {
@@ -59,7 +124,6 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
       setOriginalResponse(initialResponse)
       setRetryCount(0)
       setLoadingMessageIndex(0)
-      console.log('Result:', initialResponse)
     }
   }, [initialResponse, initialError, initialIsGenerating])
 
@@ -168,6 +232,17 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
           <CardTitle>Your Generated Letter - {campaignName}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {!isLoggedIn && (
+            <div className="mb-4 p-4 bg-blue-50 rounded-md">
+              <p className="text-sm text-blue-800 mb-2">
+                <strong>Tip:</strong> Log in now to send your email directly once it's ready:
+              </p>
+              <Button onClick={handleGoogleLogin} className="w-full">
+                Log in with Google
+              </Button>
+            </div>
+          )}
+          
           <div>
             <p className="font-semibold mb-2">Your letter</p>
             <div className="relative">
@@ -191,22 +266,40 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
             <p>Send the letter to your MP at: <strong>{mpEmail}</strong></p>
           )}
           
-          <div>
-            <p className="font-semibold mb-2">Open in your email client</p>
-            {response && !error ? (
+          {response && !error && (
+            <div>
+              <p className="font-semibold mb-2">Send your email</p>
+              {isLoggedIn ? (
+                <Button 
+                  onClick={handleSendEmail}
+                  className="w-full mb-2"
+                  disabled={isSendingEmail}
+                >
+                  {isSendingEmail ? 'Sending...' : 'Send with Google'}
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleGoogleLogin}
+                  className="w-full mb-2"
+                >
+                  Log in with Google to send
+                </Button>
+              )}
               <Button 
                 asChild
                 className="w-full"
                 variant="outline"
               >
                 <a href={mailtoLink}>
-                  Click here to create an email with the letter pre-filled
+                  Open in your email client
                 </a>
               </Button>
-            ) : (
-              <p>Email link will be available once the letter is generated.</p>
-            )}
-          </div>
+            </div>
+          )}
+          
+          {emailSentMessage && (
+            <Alert variant="success" className="mt-4">{emailSentMessage}</Alert>
+          )}
           
           {!error && (
             <div className="p-4 bg-yellow-100 rounded-md">

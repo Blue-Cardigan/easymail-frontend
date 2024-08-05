@@ -42,7 +42,6 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     setSubmitError(null)
 
     try {
-      console.log('Submitting form data:', formData)
       onSubmit(formData)
     } catch (error) {
       console.error('Error creating campaign:', error)
