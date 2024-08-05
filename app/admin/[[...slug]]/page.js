@@ -1,15 +1,29 @@
-import { notFound } from 'next/navigation'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import AdminNotFound from '../not-found'
+import ShareCampaignPage from '../share/[url]/page'
+import CampaignDesignPage from '../new/page'
 
-// This is a simplified check. You might need to adjust this based on your actual admin routes.
-const validAdminRoutes = ['new', 'share']
+export default async function AdminCatchAll({ params }) {
+  const supabase = createServerComponentClient({ cookies })
+  const { data: { session } } = await supabase.auth.getSession()
 
-export default function AdminCatchAll({ params }) {
-  // Check if the route is valid
-  if (!params.slug || (params.slug.length === 1 && validAdminRoutes.includes(params.slug[0]))) {
-    // This is a valid route, so we should render the actual page
-    // You might need to import and render the correct component based on the route
-    return <div>Valid Admin Page</div>
+  if (!session) {
+    redirect('/login')
+  }
+
+  if (!params.slug) {
+    // This is the /admin route
+    return <div>Admin Dashboard</div>
+  }
+
+  if (params.slug[0] === 'new') {
+    return <CampaignDesignPage params={params} />
+  }
+
+  if (params.slug[0] === 'share' && params.slug[1]) {
+    return <ShareCampaignPage />
   }
 
   // If we reach here, it's an invalid route

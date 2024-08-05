@@ -32,7 +32,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
     if (retryCount < 3) {
       setIsGenerating(true)
       setError(null)
-      setLoadingMessageIndex(retryCount) // Set loading message based on retry count
+      setLoadingMessageIndex(retryCount)
       try {
         await onRetry()
         setRetryCount(prev => prev + 1)
@@ -56,7 +56,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
     if (!initialError && initialResponse) {
       setResponse(initialResponse)
       setEditableResponse(initialResponse)
-      setOriginalResponse(initialResponse)  // Store the original response
+      setOriginalResponse(initialResponse)
       setRetryCount(0)
       setLoadingMessageIndex(0)
       console.log('Result:', initialResponse)
@@ -78,6 +78,14 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
     }
   }, [response, isEditing])
 
+  useEffect(() => {
+    if (response && mpEmail) {
+      const subject = encodeURIComponent(`Regarding ${campaignName}`)
+      const body = encodeURIComponent(response)
+      setMailtoLink(`mailto:${mpEmail}?subject=${subject}&body=${body}`)
+    }
+  }, [response, mpEmail, campaignName])
+
   const handleCopyText = () => {
     if ((isEditing ? editableResponse : response) && !error) {
       navigator.clipboard.writeText(isEditing ? editableResponse : response).then(() => {
@@ -89,7 +97,6 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
 
   const handleEditToggle = () => {
     if (isEditing) {
-      // Leaving edit mode
       if (editableResponse !== response) {
         setResponse(editableResponse)
       }

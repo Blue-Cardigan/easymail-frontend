@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import DesignCampaign from '@/components/DesignCampaign'
 import { useRouter } from 'next/navigation'
 import { notFound } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { supabase } from '@/lib/supabase'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 const CACHE_KEY = 'campaignFormData'
 
@@ -11,6 +14,7 @@ export default function CampaignDesignPage({ params }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const router = useRouter()
+  const supabase = createClientComponentClient()
 
   const defaultCampaignData = {
     campaign_name: '',
@@ -21,18 +25,31 @@ export default function CampaignDesignPage({ params }) {
 
   const [formData, setFormData] = useState(defaultCampaignData)
 
-  // Load cached form data on component mount
   useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        router.push('/login')
+      }
+    }
+
+    checkSession()
+
     const cachedData = localStorage.getItem(CACHE_KEY)
     if (cachedData) {
       setFormData(JSON.parse(cachedData))
     }
-  }, [])
+  }, [router, supabase])
 
   // Update cache whenever form data changes
   useEffect(() => {
     localStorage.setItem(CACHE_KEY, JSON.stringify(formData))
   }, [formData])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   const handleFormChange = (updatedData) => {
     setFormData(updatedData)
@@ -84,7 +101,7 @@ export default function CampaignDesignPage({ params }) {
       localStorage.removeItem(CACHE_KEY)
 
       // Navigate to share page with the generated URL
-      router.push(`/admin/${campaignID}/share?url=${url}`)
+      router.push(`/admin/share/${url}`)
     } catch (error) {
       console.error('Error in campaign process:', error)
       setError(`Failed to process campaign: ${error.message}`)
@@ -100,6 +117,10 @@ export default function CampaignDesignPage({ params }) {
 
   return (
     <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">New Campaign</h1>
+        <Button onClick={handleLogout}>Logout</Button>
+      </div>
       {error && <div className="text-red-500 mb-4">{error}</div>}
       <DesignCampaign 
         campaignID={params.id} 
