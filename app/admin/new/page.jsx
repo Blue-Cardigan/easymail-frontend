@@ -29,7 +29,7 @@ export default function CampaignDesignPage({ params }) {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
-        router.push('/login')
+        router.push('/')
       }
     }
 
@@ -48,7 +48,7 @@ export default function CampaignDesignPage({ params }) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    router.push('/login')
+    router.push('/')
   }
 
   const handleFormChange = (updatedData) => {
@@ -117,8 +117,7 @@ export default function CampaignDesignPage({ params }) {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">New Campaign</h1>
+      <div className="flex justify-end mb-4">
         <Button onClick={handleLogout}>Logout</Button>
       </div>
       {error && <div className="text-red-500 mb-4">{error}</div>}

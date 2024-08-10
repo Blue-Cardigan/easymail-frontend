@@ -6,21 +6,34 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import Link from 'next/link'
 
-export default function UserAuthPage() {
+export default function ClientLoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isLogin, setIsLogin] = useState(true)
-  const [message, setMessage] = useState(null)
   const router = useRouter()
   const supabase = createClientComponentClient()
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
-        router.push('/') // Redirect to home page for users
+        // Check if the user is an admin
+        const { data: adminData, error: adminError } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single()
+
+        if (adminError || !adminData) {
+          // If not an admin, sign out and show error
+          await supabase.auth.signOut()
+          setError('Not authorized. Please contact support if you believe this is an error.')
+        } else {
+          // If admin, redirect to admin/new
+          router.push('/admin/new')
+        }
       }
     })
 
@@ -29,57 +42,21 @@ export default function UserAuthPage() {
     }
   }, [supabase, router])
 
-  const handleEmailAuth = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
-    setMessage(null)
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-        if (error) throw error
-      } else {
-        const { error, data } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?type=user`,
-          },
-        })
-        if (error) throw error
-        if (data.user && data.user.identities && data.user.identities.length === 0) {
-          setMessage('An account with this email already exists.')
-        } else {
-          setMessage('Check your email for the confirmation link.')
-        }
-      }
-    } catch (error) {
-      setError(error.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleGoogleLogin = async () => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/gmail.send',
-          redirectTo: `${window.location.origin}/auth/callback?type=user`,
-        },
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
       if (error) throw error
+
+      // The redirection will be handled by the onAuthStateChange listener
     } catch (error) {
       setError(error.message)
-    } finally {
       setIsLoading(false)
     }
   }
@@ -87,11 +64,13 @@ export default function UserAuthPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
-        <h1 className="text-2xl font-bold mb-6 text-center">
-          {isLogin ? 'Login' : 'Sign Up'}
-        </h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">Client Login</h1>
         
-        <form onSubmit={handleEmailAuth} className="space-y-4 mb-4">
+        <Alert className="mb-6">
+          This login is for registered clients only. If you're looking to create a campaign, please contact us.
+        </Alert>
+        
+        <form onSubmit={handleLogin} className="space-y-4 mb-6">
           <Input
             type="email"
             placeholder="Email"
@@ -107,35 +86,26 @@ export default function UserAuthPage() {
             required
           />
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Processing...' : (isLogin ? 'Login' : 'Sign Up')}
+            {isLoading ? 'Processing...' : 'Login'}
           </Button>
         </form>
 
-        <Button 
-          onClick={() => {
-            setIsLogin(!isLogin)
-            setError(null)
-            setMessage(null)
-          }} 
-          variant="link" 
-          className="w-full mb-4"
-        >
-          {isLogin ? 'Need an account? Sign Up' : 'Already have an account? Login'}
-        </Button>
+        {error && <Alert variant="destructive" className="mb-6">{error}</Alert>}
 
-        <div className="relative my-4">
-          <hr className="border-gray-300" />
-          <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-gray-500">
-            or
-          </span>
+        <div className="space-y-4">
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-2">Want to create your own campaign?</p>
+            <Link href="/contact">
+              <Button variant="outline" className="w-full">Contact Us</Button>
+            </Link>
+          </div>
+          
+          <div className="text-center">
+            <Link href="/">
+              <Button variant="link" className="w-full">Return to Home</Button>
+            </Link>
+          </div>
         </div>
-
-        <Button onClick={handleGoogleLogin} className="w-full" disabled={isLoading}>
-          {isLoading ? 'Processing...' : 'Continue with Google'}
-        </Button>
-
-        {error && <Alert variant="destructive" className="mt-4">{error}</Alert>}
-        {message && <Alert variant="success" className="mt-4">{message}</Alert>}
       </div>
     </div>
   )

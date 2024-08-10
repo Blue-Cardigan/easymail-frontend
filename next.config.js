@@ -5,6 +5,10 @@ const nextConfig = {
   },
   experimental: {
     appDir: true,
+    serverActions: true,
+  },
+  images: {
+    domains: ['resend.com'],
   },
   webpack: (config, { isServer }) => {
     config.resolve.alias.canvas = false
