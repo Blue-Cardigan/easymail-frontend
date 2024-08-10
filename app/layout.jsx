@@ -21,7 +21,7 @@ export default function Layout({ children }) {
   return (
     <html lang="en">
       <Head>
-        <link rel="icon" href="/favico.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/favico.svg" />
         <link rel="shortcut icon" href="/favico.svg" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
