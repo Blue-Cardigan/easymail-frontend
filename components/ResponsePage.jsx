@@ -7,7 +7,11 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert } from "@/components/ui/alert"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { GoogleSignInButton } from '@/components/GoogleSignInButton'
+import Image from 'next/image'
 
 const loadingMessages = [
   "Generating your letter...",
@@ -16,9 +20,11 @@ const loadingMessages = [
   "We're sorry, something went wrong. Try reloading the page then try again."
 ]
 
-export default function ResponsePage({ campaignId, campaignName, initialResponse, mpEmail, isGenerating: initialIsGenerating, error: initialError, onRetry }) {
+export default function ResponsePage({ campaignId, campaignName, initialResponse, initialSubject, mpEmail, isGenerating: initialIsGenerating, error: initialError, onRetry, user: initialUser }) {
   const [response, setResponse] = useState(initialResponse)
   const [editableResponse, setEditableResponse] = useState(initialResponse)
+  const [subject, setSubject] = useState(initialSubject)
+  const [editableSubject, setEditableSubject] = useState(initialSubject)
   const [copied, setCopied] = useState(false)
   const [mailtoLink, setMailtoLink] = useState('')
   const [isGenerating, setIsGenerating] = useState(initialIsGenerating)
@@ -29,26 +35,77 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   const [contentHeight, setContentHeight] = useState('auto')
   const contentRef = useRef(null)
   const [originalResponse, setOriginalResponse] = useState(initialResponse)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(!!initialUser)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [emailSentMessage, setEmailSentMessage] = useState(null)
+  const [hasEdited, setHasEdited] = useState(false)
+  const [hasBrackets, setHasBrackets] = useState(false)
+  const [user, setUser] = useState(initialUser)
   const supabase = createClientComponentClient()
 
   useEffect(() => {
+    if (user) {
+      localStorage.setItem('hasEdited', JSON.stringify(hasEdited));
+    }
+  }, [hasEdited, user]);
+
+  useEffect(() => {
     const checkLoginStatus = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setIsLoggedIn(!!session)
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      setIsLoggedIn(!!user)
+
+      if (user) {
+        const savedHasEdited = localStorage.getItem('hasEdited');
+        if (savedHasEdited !== null) {
+          setHasEdited(JSON.parse(savedHasEdited));
+        }
+
+        // Check for pending letter data (for users who just logged in)
+        const pendingLetter = JSON.parse(localStorage.getItem('pendingLetter'))
+        if (pendingLetter && pendingLetter.campaignId === campaignId) {
+          setHasEdited(pendingLetter.hasEdited || false)
+          setResponse(pendingLetter.generatedResponse || initialResponse)
+          setEditableResponse(pendingLetter.generatedResponse || initialResponse)
+          setSubject(pendingLetter.generatedSubject || initialSubject)
+          setEditableSubject(pendingLetter.generatedSubject || initialSubject)
+          
+          // Clear the pendingLetter from localStorage
+          localStorage.removeItem('pendingLetter')
+        }
+      } else {
+        // If user is not logged in, clear the hasEdited state in localStorage
+        localStorage.removeItem('hasEdited');
+      }
     }
     checkLoginStatus()
-  }, [supabase.auth])
+  }, [supabase.auth, campaignId, initialResponse, initialSubject])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setIsLoggedIn(false)
+  }
 
   const handleGoogleLogin = async () => {
     try {
+      // Store necessary information in localStorage
+      localStorage.setItem('pendingLetter', JSON.stringify({
+        campaignId,
+        campaignName,
+        mpEmail,
+        isGenerating: isGenerating,
+        generatedResponse: response,
+        generatedSubject: subject,
+        hasEdited: hasEdited,
+        formData: JSON.parse(localStorage.getItem('formData'))
+      }))
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           scopes: 'https://www.googleapis.com/auth/gmail.send',
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback?returnTo=/${campaignId}`
         }
       })
       if (error) throw error
@@ -76,7 +133,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
         },
         body: JSON.stringify({
           to: mpEmail,
-          subject: `Regarding ${campaignName}`,
+          subject: editableSubject || subject,
           body: editableResponse || response,
         }),
       })
@@ -122,10 +179,12 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
       setResponse(initialResponse)
       setEditableResponse(initialResponse)
       setOriginalResponse(initialResponse)
+      setSubject(initialSubject)
+      setEditableSubject(initialSubject)
       setRetryCount(0)
       setLoadingMessageIndex(0)
     }
-  }, [initialResponse, initialError, initialIsGenerating])
+  }, [initialResponse, initialSubject, initialError, initialIsGenerating])
 
   useEffect(() => {
     if (isGenerating) {
@@ -143,12 +202,12 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   }, [response, isEditing])
 
   useEffect(() => {
-    if (response && mpEmail) {
-      const subject = encodeURIComponent(`Regarding ${campaignName}`)
+    if (response && subject && mpEmail) {
+      const encodedSubject = encodeURIComponent(subject)
       const body = encodeURIComponent(response)
-      setMailtoLink(`mailto:${mpEmail}?subject=${subject}&body=${body}`)
+      setMailtoLink(`mailto:${mpEmail}?subject=${encodedSubject}&body=${body}`)
     }
-  }, [response, mpEmail, campaignName])
+  }, [response, subject, mpEmail])
 
   const handleCopyText = () => {
     if ((isEditing ? editableResponse : response) && !error) {
@@ -159,17 +218,39 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
     }
   }
 
+  const checkForBrackets = (text) => {
+    return /\[.*?\]/.test(text)
+  }
+
   const handleEditToggle = () => {
     if (isEditing) {
       if (editableResponse !== response) {
         setResponse(editableResponse)
+        setHasEdited(true)
       }
+      if (editableSubject !== subject) {
+        setSubject(editableSubject)
+        setHasEdited(true)
+      }
+      setHasBrackets(checkForBrackets(editableResponse) || checkForBrackets(editableSubject))
     }
     setIsEditing(!isEditing)
   }
 
+  const handleEditableResponseChange = (e) => {
+    const newText = e.target.value
+    setEditableResponse(newText)
+    if (!hasEdited && newText !== response) {
+      setHasEdited(true)
+    }
+    setHasBrackets(checkForBrackets(newText))
+  }
+
   const handleResetToOriginal = () => {
     setEditableResponse(originalResponse)
+    setEditableSubject(initialSubject)
+    setHasEdited(false)
+    setHasBrackets(checkForBrackets(originalResponse) || checkForBrackets(initialSubject))
   }
 
   const renderContent = () => {
@@ -198,26 +279,36 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
       )
     } else if (response) {
       return (
-        <div>
-          {isEditing ? (
-            <Textarea
-              value={editableResponse}
-              onChange={(e) => setEditableResponse(e.target.value)}
-              className="min-h-[200px] w-full mb-2"
-              style={{ height: contentHeight }}
-            />
-          ) : (
-            <div ref={contentRef}>{response}</div>
-          )}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center space-x-2">
-              <Switch id="edit-mode" checked={isEditing} onCheckedChange={handleEditToggle} />
-              <Label htmlFor="edit-mode">{isEditing ? 'Editing' : 'Click to edit'}</Label>
-            </div>
-            {isEditing && (
-              <Button onClick={handleResetToOriginal} variant="outline">Reset to Original</Button>
-            )}
+        <div className="relative">
+          <div 
+            ref={contentRef}
+            className={`cursor-pointer ${isEditing ? 'hidden' : ''}`}
+            onClick={handleCopyText}
+          >
+            <h3 className="font-bold mb-2">{subject}</h3>
+            <div>{response}</div>
           </div>
+          {isEditing && (
+            <>
+              <input
+                value={editableSubject}
+                onChange={(e) => setEditableSubject(e.target.value)}
+                className="w-full mb-2 p-2 border rounded"
+                placeholder="Subject"
+              />
+              <Textarea
+                value={editableResponse}
+                onChange={handleEditableResponseChange}
+                className={`min-h-[200px] w-full mb-2 ${hasBrackets ? 'border-red-500' : ''}`}
+                style={{ height: contentHeight }}
+              />
+            </>
+          )}
+          {copied && !isEditing && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white rounded-md">
+              Copied!
+            </div>
+          )}
         </div>
       )
     } else {
@@ -227,7 +318,34 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
 
   return (
     <div className="container mx-auto p-4">
-      <Card className="w-full max-w-2xl mx-auto">
+      <Card className="w-full max-w-2xl mx-auto relative">
+        {user && (
+          <div className="absolute top-2 right-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 rounded-full">
+                  <Avatar>
+                    <AvatarImage src={user?.user_metadata?.avatar_url} />
+                    <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-50">
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium leading-none">Logged in</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={handleLogout}>
+                    Log out
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
         <CardHeader>
           <CardTitle>Your Generated Letter - {campaignName}</CardTitle>
         </CardHeader>
@@ -235,60 +353,90 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
           {!isLoggedIn && (
             <div className="mb-4 p-4 bg-blue-50 rounded-md">
               <p className="text-sm text-blue-800 mb-2">
-                <strong>Tip:</strong> Log in now to send your email directly once it's ready:
+                <strong>Tip:</strong> {response ? (
+                  "Log in to send your email directly from this page:"
+                ) : (
+                  "Log in now to send your email directly once it's ready:"
+                )}
               </p>
-              <Button onClick={handleGoogleLogin} className="w-full">
-                Log in with Google
-              </Button>
+              <GoogleSignInButton onClick={handleGoogleLogin} />
             </div>
           )}
           
           <div>
-            <p className="font-semibold mb-2">Your letter</p>
             <div className="relative">
-              <div 
-                className={`relative ${!error && response && !isEditing ? 'cursor-pointer' : ''}`}
-                onClick={!isEditing ? handleCopyText : undefined}
-              >
-                <pre className="whitespace-pre-wrap p-4 bg-gray-100 rounded-md">
-                  {renderContent()}
-                </pre>
-                {copied && !isEditing && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white rounded-md">
-                    Copied!
-                  </div>
-                )}
+              <pre className="whitespace-pre-wrap p-4 bg-gray-100 rounded-md">
+                {renderContent()}
+              </pre>
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              {isEditing && (
+                <Button onClick={handleResetToOriginal} variant="outline" size="sm">
+                  Reset to Original
+                </Button>
+              )}
+              <div className="flex items-center space-x-2">
+                <Switch id="edit-mode" checked={isEditing} onCheckedChange={handleEditToggle} />
+                <Label htmlFor="edit-mode" className="text-sm">
+                  {isEditing ? 'Save Changes' : 'Click to edit'}
+                </Label>
               </div>
             </div>
+            {hasBrackets && (
+              <Alert variant="destructive" className="mt-2">
+                Make sure to fill in the [Placeholder Text] before sending.
+              </Alert>
+            )}
           </div>
           
-          {mpEmail && !error && (
-            <p>Send the letter to your MP at: <strong>{mpEmail}</strong></p>
-          )}
-          
-          {response && !error && (
+          {response && !error && hasEdited && (
             <div>
-              <p className="font-semibold mb-2">Send your email</p>
+              <p className="font-semibold mb-2">
+                          
+              {mpEmail && !error && (
+                <p>Send the letter to your MP: <strong>{mpEmail}</strong></p>
+              )}
+              </p>
               {isLoggedIn ? (
                 <Button 
                   onClick={handleSendEmail}
-                  className="w-full mb-2"
-                  disabled={isSendingEmail}
+                  className="w-full mb-2 flex items-center justify-center gap-2"
+                  disabled={isSendingEmail || hasBrackets}
                 >
-                  {isSendingEmail ? 'Sending...' : 'Send with Google'}
+                  {isSendingEmail ? (
+                    'Sending...'
+                  ) : (
+                    <>
+                      Send with{' '}
+                      <Image
+                        src="/signin-assets/Web (mobile + desktop)/svg/dark/web_dark_rd_na.svg"
+                        alt="Google logo"
+                        width={20}
+                        height={20}
+                      />
+                    </>
+                  )}
                 </Button>
               ) : (
                 <Button 
                   onClick={handleGoogleLogin}
-                  className="w-full mb-2"
+                  className="w-full mb-2 flex items-center justify-center gap-2"
+                  disabled={hasBrackets}
                 >
-                  Log in with Google to send
+                  Send with{' '}
+                  <Image
+                    src="/signin-assets/Web (mobile + desktop)/svg/dark/web_dark_rd_na.svg"
+                    alt="Google logo"
+                    width={20}
+                    height={20}
+                  />
                 </Button>
               )}
               <Button 
                 asChild
                 className="w-full"
                 variant="outline"
+                disabled={hasBrackets}
               >
                 <a href={mailtoLink}>
                   Open in your email client
@@ -305,8 +453,16 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
             <div className="p-4 bg-yellow-100 rounded-md">
               <p className="font-semibold mb-2">Important:</p>
               <ul className="list-disc list-inside">
-                <li>Add your name at the bottom of the letter where it says "[Your Name]".</li>
                 <li>Review the letter and make any personal adjustments if needed.</li>
+                {!hasBrackets && (
+                  <li>Add your name at the bottom of the letter.</li>
+                )}
+                {!hasEdited && (
+                  <li className="text-red-600">You must edit the letter before sending it.</li>
+                )}
+                {hasBrackets && (
+                  <li className="text-red-600">Add your name at the bottom of the letter where it says "[Your Name]".</li>
+                )}
               </ul>
             </div>
           )}

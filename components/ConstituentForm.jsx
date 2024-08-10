@@ -5,6 +5,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import mpsData from '@/lib/mps.json'
 
 const tones = [
@@ -35,9 +38,12 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
   const [selectedConstituency, setSelectedConstituency] = useState(null)
   const [suggestions, setSuggestions] = useState([])
   const [age, setAge] = useState('')
+  const [ageError, setAgeError] = useState('')
   const [selectedReasons, setSelectedReasons] = useState([])
   const [selectedTones, setSelectedTones] = useState([])
   const [errors, setErrors] = useState({})
+  const [user, setUser] = useState(null)
+  const supabase = createClientComponentClient()
 
   const mpConstituencies = mpsData.map(mp => ({
     id: mp.Name,
@@ -70,18 +76,42 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
     }
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const validateAge = (value) => {
+    const ageNum = parseInt(value, 10)
+    if (value === '') {
+      setAgeError('')
+    } else if (isNaN(ageNum) || ageNum < 12 || ageNum > 100) {
+      setAgeError('Age must be between 12 and 100')
+    } else {
+      setAgeError('')
+    }
+  }
+
+  const handleAgeChange = (e) => {
+    const value = e.target.value
+    setAge(value)
+    setErrors(prev => ({ ...prev, age: '' }))
+  }
+
+  const handleAgeBlur = () => {
+    validateAge(age)
+  }
+
+  const validateForm = () => {
     const newErrors = {}
 
     if (!selectedConstituency && campaignData.target === 'national') newErrors.constituency = 'Constituency is required'
     if (selectedReasons.length === 0) newErrors.reason = 'Please select at least one reason'
     if (selectedTones.length === 0) newErrors.tones = 'Please select at least one tone'
+    if (ageError) newErrors.age = ageError
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
-    }
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!validateForm()) return
 
     const formData = {
       constituency: selectedConstituency ? selectedConstituency.constituency : campaignData.target,
@@ -92,6 +122,15 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
     }
 
     onSubmit(formData)
+  }
+
+  const isFormValid = () => {
+    return (
+      (selectedConstituency || campaignData.target !== 'national') &&
+      selectedReasons.length > 0 &&
+      selectedTones.length > 0 &&
+      !ageError
+    )
   }
 
   const handleToneSelection = (tone) => {
@@ -106,8 +145,48 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
     setErrors(prev => ({ ...prev, tones: '' }))
   }
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+  }
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    checkUser()
+  }, [supabase.auth])
+
   return (
-    <Card className="w-full max-w-3xl mx-auto">
+    <Card className="w-full max-w-3xl mx-auto relative">
+      {user && (
+        <div className="absolute top-2 right-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 rounded-full">
+                <Avatar>
+                  <AvatarImage src={user?.user_metadata?.avatar_url} />
+                  <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-50">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Logged in</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {user.email}
+                  </p>
+                </div>
+                <Button variant="outline" onClick={handleLogout}>
+                  Log out
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
       <CardHeader>
         <CardTitle>{campaignData.campaign_name}</CardTitle>
         <CardDescription>{campaignData.summary}</CardDescription>
@@ -165,13 +244,11 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
               type="number" 
               placeholder="Enter your age (optional)" 
               value={age}
-              onChange={(e) => {
-                setAge(e.target.value)
-                setErrors(prev => ({ ...prev, age: '' }))
-              }}
-              className={errors.age ? 'border-red-500' : ''}
+              onChange={handleAgeChange}
+              onBlur={handleAgeBlur}
+              className={ageError ? 'border-red-500' : ''}
             />
-            {errors.age && <span className="text-red-500 text-sm">{errors.age}</span>}
+            {ageError && <span className="text-red-500 text-sm">{ageError}</span>}
           </div>
           <div className="grid gap-2">
             <Label>Why Is This Campaign Important To You? (Select up to 2)*</Label>
@@ -227,7 +304,11 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
         </form>
       </CardContent>
       <CardFooter className="flex justify-end">
-        <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
+        <Button 
+          type="submit" 
+          onClick={handleSubmit} 
+          disabled={isSubmitting || !isFormValid()}
+        >
           {isSubmitting ? 'Generating...' : `Generate Letter for ${campaignData.campaign_name}`}
         </Button>
       </CardFooter>

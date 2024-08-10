@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ConstituentForm } from '@/components/ConstituentForm'
 import ResponsePage from '@/components/ResponsePage'
 import CampaignNotFound from './not-found'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 async function getCampaignDetails(id) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -32,12 +33,22 @@ export default function LetterGeneratorPage({ params }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedResponse, setGeneratedResponse] = useState(null)
+  const [generatedSubject, setGeneratedSubject] = useState(null)
   const [mpEmail, setMpEmail] = useState(null)
   const [formData, setFormData] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [user, setUser] = useState(null)
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    checkUser()
+
     async function fetchCampaignDetails() {
       try {
         const data = await getCampaignDetails(params.id)
@@ -48,13 +59,31 @@ export default function LetterGeneratorPage({ params }) {
         }
       } catch (err) {
         console.error('Error fetching campaign details:', err)
-        // Set notFound to true for any error, including 400 Bad Request
         setNotFound(true)
         setError(err.message)
       }
     }
     fetchCampaignDetails()
-  }, [params.id])
+
+    // Check if user is returning from login
+    const isReturningFromLogin = searchParams.get('fromLogin') === 'true'
+    if (isReturningFromLogin) {
+      const pendingLetter = JSON.parse(localStorage.getItem('pendingLetter'))
+      if (pendingLetter && pendingLetter.campaignId === params.id) {
+        setMpEmail(pendingLetter.mpEmail)
+        setIsGenerating(pendingLetter.isGenerating)
+        setFormData(JSON.parse(localStorage.getItem('formData')))
+        if (pendingLetter.isGenerating) {
+          generateLetter(JSON.parse(localStorage.getItem('formData')))
+        } else if (pendingLetter.generatedResponse) {
+          setGeneratedResponse(pendingLetter.generatedResponse)
+          setGeneratedSubject(pendingLetter.generatedSubject)
+        }
+      }
+      localStorage.removeItem('pendingLetter')
+      localStorage.removeItem('formData')
+    }
+  }, [params.id, searchParams, supabase.auth])
 
   const generateLetter = useCallback(async (formData) => {
     if (!formData) return
@@ -81,6 +110,7 @@ export default function LetterGeneratorPage({ params }) {
 
       const result = await response.json()
       setGeneratedResponse(result.letter)
+      setGeneratedSubject(result.subject_line)
     } catch (error) {
       console.error('Error generating letter:', error)
       setError(error.message || 'Failed to generate letter. Please try again.')
@@ -93,6 +123,7 @@ export default function LetterGeneratorPage({ params }) {
     setIsSubmitting(true)
     setMpEmail(submittedFormData.mpEmail)
     setFormData(submittedFormData)
+    localStorage.setItem('formData', JSON.stringify(submittedFormData))
     await generateLetter(submittedFormData)
     setIsSubmitting(false)
   }
@@ -113,10 +144,12 @@ export default function LetterGeneratorPage({ params }) {
             campaignId={params.id}
             campaignName={campaignData.campaign_name}
             initialResponse={generatedResponse} 
+            initialSubject={generatedSubject} 
             mpEmail={mpEmail} 
             isGenerating={isGenerating}
             error={error}
             onRetry={() => generateLetter(formData)}
+            user={user}
           />
         ) : (
           <ConstituentForm 
@@ -124,6 +157,7 @@ export default function LetterGeneratorPage({ params }) {
             campaignData={campaignData} 
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
+            user={user}
           />
         )
       ) : error ? (

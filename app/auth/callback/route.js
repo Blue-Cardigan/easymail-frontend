@@ -8,13 +8,17 @@ export async function GET(req) {
   const supabase = createRouteHandlerClient({ cookies })
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
-  const type = searchParams.get('type')
+  const returnTo = searchParams.get('returnTo')
 
   if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (error) {
       console.error('Error exchanging code for session:', error)
       return NextResponse.redirect('/error')
+    }
+
+    if (returnTo) {
+      return NextResponse.redirect(new URL(`${returnTo}?fromLogin=true`, req.url))
     }
 
     if (type === 'user') {
