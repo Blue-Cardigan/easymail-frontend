@@ -181,6 +181,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
       setOriginalResponse(initialResponse)
       setSubject(initialSubject)
       setEditableSubject(initialSubject)
+      setHasBrackets(checkForBrackets(initialResponse) || checkForBrackets(initialSubject))
       setRetryCount(0)
       setLoadingMessageIndex(0)
     }
@@ -243,7 +244,16 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
     if (!hasEdited && newText !== response) {
       setHasEdited(true)
     }
-    setHasBrackets(checkForBrackets(newText))
+    setHasBrackets(checkForBrackets(newText) || checkForBrackets(editableSubject))
+  }
+
+  const handleEditableSubjectChange = (e) => {
+    const newSubject = e.target.value
+    setEditableSubject(newSubject)
+    if (!hasEdited && newSubject !== subject) {
+      setHasEdited(true)
+    }
+    setHasBrackets(checkForBrackets(editableResponse) || checkForBrackets(newSubject))
   }
 
   const handleResetToOriginal = () => {
@@ -252,6 +262,10 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
     setHasEdited(false)
     setHasBrackets(checkForBrackets(originalResponse) || checkForBrackets(initialSubject))
   }
+
+  useEffect(() => {
+    setHasBrackets(checkForBrackets(response) || checkForBrackets(subject));
+  }, [response, subject]);
 
   const renderContent = () => {
     if (isGenerating) {
@@ -292,7 +306,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
             <>
               <input
                 value={editableSubject}
-                onChange={(e) => setEditableSubject(e.target.value)}
+                onChange={handleEditableSubjectChange}
                 className="w-full mb-2 p-2 border rounded"
                 placeholder="Subject"
               />
@@ -382,11 +396,6 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
                 </Label>
               </div>
             </div>
-            {hasBrackets && (
-              <Alert variant="destructive" className="mt-2">
-                Make sure to fill in the [Placeholder Text] before sending.
-              </Alert>
-            )}
           </div>
           
           {response && !error && hasEdited && (
@@ -400,7 +409,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
               {isLoggedIn ? (
                 <Button 
                   onClick={handleSendEmail}
-                  className="w-full mb-2 flex items-center justify-center gap-2"
+                  className="w-full mb-2 flex items-center justify-center gap-2 bg-white text-black border border-gray-300 hover:bg-gray-100"
                   disabled={isSendingEmail || hasBrackets}
                 >
                   {isSendingEmail ? (
@@ -420,7 +429,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
               ) : (
                 <Button 
                   onClick={handleGoogleLogin}
-                  className="w-full mb-2 flex items-center justify-center gap-2"
+                  className="w-full mb-2 flex items-center justify-center gap-2 bg-white text-black border border-gray-300 hover:bg-gray-100"
                   disabled={hasBrackets}
                 >
                   Send with{' '}
@@ -453,16 +462,16 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
             <div className="p-4 bg-yellow-100 rounded-md">
               <p className="font-semibold mb-2">Important:</p>
               <ul className="list-disc list-inside">
-                <li>Review the letter and make any personal adjustments if needed.</li>
-                {!hasBrackets && (
-                  <li>Add your name at the bottom of the letter.</li>
-                )}
                 {!hasEdited && (
                   <li className="text-red-600">You must edit the letter before sending it.</li>
                 )}
                 {hasBrackets && (
                   <li className="text-red-600">Add your name at the bottom of the letter where it says "[Your Name]".</li>
                 )}
+                {!hasBrackets && (
+                  <li>Add your name at the bottom of the letter.</li>
+                )}
+                <li>Review the letter and make any personal adjustments if needed.</li>
               </ul>
             </div>
           )}
