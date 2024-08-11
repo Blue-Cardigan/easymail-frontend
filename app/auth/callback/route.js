@@ -9,6 +9,7 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
   const returnTo = searchParams.get('returnTo')
+  const type = searchParams.get('type')
 
   if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
@@ -18,10 +19,18 @@ export async function GET(req) {
     }
 
     if (returnTo) {
-      return NextResponse.redirect(new URL(`${returnTo}?fromLogin=true`, req.url))
+      if (process.env.NODE_ENV === 'production') {
+        // Construct the full return URL using NEXT_PUBLIC_SITE_URL
+        const fullReturnUrl = new URL(returnTo, process.env.NEXT_PUBLIC_SITE_URL)
+        fullReturnUrl.searchParams.append('fromLogin', 'true')
+        return NextResponse.redirect(fullReturnUrl)
+      } else {
+        // In development, use the provided line
+        return NextResponse.redirect(new URL(`${returnTo}?fromLogin=true`, req.url))
+      }
     }
 
-    if (type === 'user') {
+    if (type === 'user' || !type) {
       // Store OAuth tokens in the database for users
       const { error: insertError } = await supabase
         .from('oauth_tokens')
@@ -38,7 +47,8 @@ export async function GET(req) {
         console.error('Error storing OAuth tokens:', insertError)
       }
 
-      return NextResponse.redirect(new URL('/', req.url))
+      // Redirect to the returnTo URL or home page
+      return NextResponse.redirect(returnTo ? new URL(returnTo, process.env.NEXT_PUBLIC_SITE_URL) : new URL('/', process.env.NEXT_PUBLIC_SITE_URL))
     } else if (type === 'admin') {
       // Check if the user is an admin
       const { data: adminData, error: adminError } = await supabase
@@ -59,5 +69,5 @@ export async function GET(req) {
   }
 
   // If no type is specified or something goes wrong, redirect to the home page
-  return NextResponse.redirect(new URL('/', req.url))
+  return NextResponse.redirect(new URL('/', process.env.NEXT_PUBLIC_SITE_URL))
 }
