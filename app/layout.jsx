@@ -17,10 +17,17 @@ const fontBody = Inter({
   variable: '--font-body',
 })
 
+export const metadata = {
+  title: 'EasyMail', 
+  description: 'Enhancing effective campaigning with A.I.', 
+}
+
+
 export default function Layout({ children }) {
   return (
     <html lang="en">
       <Head>
+        <title>{metadata.title}</title>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/favico.svg" />
         <link rel="shortcut icon" href="/favico.svg" />
