@@ -5,9 +5,11 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Button } from "@/components/ui/button"
 import Image from 'next/image'
 import Link from 'next/link'
+import cn from 'classnames' // Import the classnames utility
 
 export default function Header() {
   const [user, setUser] = useState(null)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const supabase = createClientComponentClient()
 
   useEffect(() => {
@@ -21,15 +23,29 @@ export default function Header() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
+    setIsMenuOpen(false)
+  }
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen)
   }
 
   return (
     <header className="w-full bg-white shadow-md p-4">
       <div className="container mx-auto flex justify-between items-center">
-        <Link href="/">
+        <Link href="/" className="flex-shrink-0">
           <Image src="/logo.png" alt="Easymail Logo" width={150} height={50} />
         </Link>
-        <div className="space-x-4">
+        
+        {/* Hamburger icon for mobile */}
+        <button onClick={toggleMenu} className="md:hidden">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        {/* Menu for desktop */}
+        <div className="hidden md:flex space-x-4">
           {user ? (
             <>
               <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
@@ -46,6 +62,33 @@ export default function Header() {
             <Button variant="secondary">Generate Letter</Button>
           </Link>
         </div>
+      </div>
+
+      {/* Mobile menu */}
+      <div
+        className={cn(
+          "md:hidden mt-4 flex flex-col space-y-2 transition-all duration-300 ease-in-out overflow-hidden",
+          {
+            "max-h-0": !isMenuOpen,
+            "max-h-[200px]": isMenuOpen,
+          }
+        )}
+      >
+        {user ? (
+          <>
+            <Button onClick={handleSignOut} variant="outline" className="w-full">Sign Out</Button>
+            <Link href="/admin/new" className="w-full">
+              <Button className="w-full">Create Campaign</Button>
+            </Link>
+          </>
+        ) : (
+          <Link href="/login" className="w-full">
+            <Button className="w-full">Login</Button>
+          </Link>
+        )}
+        <Link href="/campaigns" className="w-full">
+          <Button variant="secondary" className="w-full">Generate Letter</Button>
+        </Link>
       </div>
     </header>
   )
