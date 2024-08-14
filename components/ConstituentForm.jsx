@@ -159,7 +159,7 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
   }, [supabase.auth])
 
   return (
-    <Card className="w-full max-w-3xl mx-auto relative">
+    <Card className="w-full max-w-3xl mt-16 mx-auto relative">
       {user && (
         <div className="absolute top-2 right-2">
           <Popover>
