@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Button } from "@/components/ui/button"
 import Image from 'next/image'
 import Link from 'next/link'
-import cn from 'classnames' // Import the classnames utility
+import cn from 'classnames'
 
 export default function Header() {
   const [user, setUser] = useState(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const headerRef = useRef(null)
+  const [headerHeight, setHeaderHeight] = useState(0)
   const supabase = createClientComponentClient()
 
   useEffect(() => {
@@ -18,6 +20,22 @@ export default function Header() {
       setUser(user)
     }
     checkUser()
+
+    if (headerRef.current) {
+      setHeaderHeight(headerRef.current.offsetHeight)
+    }
+
+    // Add resize listener to update header height if window size changes
+    const handleResize = () => {
+      if (headerRef.current) {
+        setHeaderHeight(headerRef.current.offsetHeight)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
   }, [supabase])
 
   const handleSignOut = async () => {
@@ -31,65 +49,71 @@ export default function Header() {
   }
 
   return (
-    <header className="w-full bg-white shadow-md p-4">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link href="/" className="flex-shrink-0">
-          <Image src="/logo.png" alt="Easymail Logo" width={150} height={50} />
-        </Link>
-        
-        {/* Hamburger icon for mobile */}
-        <button onClick={toggleMenu} className="md:hidden">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+    <>
+      <header 
+        ref={headerRef}
+        className="fixed top-0 left-0 right-0 bg-white shadow-md p-4 z-50"
+      >
+        <div className="container mx-auto flex justify-between items-center">
+          <Link href="/" className="flex-shrink-0">
+            <Image src="/logo.png" alt="Easymail Logo" width={150} height={50} />
+          </Link>
+          
+          {/* Hamburger icon for mobile */}
+          <button onClick={toggleMenu} className="md:hidden">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
 
-        {/* Menu for desktop */}
-        <div className="hidden md:flex space-x-4">
+          {/* Menu for desktop */}
+          <div className="hidden md:flex space-x-4">
+            {user ? (
+              <>
+                <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
+                <Link href="/admin/new">
+                  <Button>Create Campaign</Button>
+                </Link>
+              </>
+            ) : (
+              <Link href="/login">
+                <Button>Login</Button>
+              </Link>
+            )}
+            <Link href="/campaigns">
+              <Button variant="secondary">Generate Letter</Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        <div
+          className={cn(
+            "md:hidden mt-4 flex flex-col space-y-2 transition-all duration-300 ease-in-out overflow-hidden",
+            {
+              "max-h-0": !isMenuOpen,
+              "max-h-[200px]": isMenuOpen,
+            }
+          )}
+        >
           {user ? (
             <>
-              <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
-              <Link href="/admin/new">
-                <Button>Create Campaign</Button>
+              <Button onClick={handleSignOut} variant="outline" className="w-full">Sign Out</Button>
+              <Link href="/admin/new" className="w-full">
+                <Button className="w-full">Create Campaign</Button>
               </Link>
             </>
           ) : (
-            <Link href="/login">
-              <Button>Login</Button>
+            <Link href="/login" className="w-full">
+              <Button className="w-full">Login</Button>
             </Link>
           )}
-          <Link href="/campaigns">
-            <Button variant="secondary">Generate Letter</Button>
+          <Link href="/campaigns" className="w-full">
+            <Button variant="secondary" className="w-full">Generate Letter</Button>
           </Link>
         </div>
-      </div>
-
-      {/* Mobile menu */}
-      <div
-        className={cn(
-          "md:hidden mt-4 flex flex-col space-y-2 transition-all duration-300 ease-in-out overflow-hidden",
-          {
-            "max-h-0": !isMenuOpen,
-            "max-h-[200px]": isMenuOpen,
-          }
-        )}
-      >
-        {user ? (
-          <>
-            <Button onClick={handleSignOut} variant="outline" className="w-full">Sign Out</Button>
-            <Link href="/admin/new" className="w-full">
-              <Button className="w-full">Create Campaign</Button>
-            </Link>
-          </>
-        ) : (
-          <Link href="/login" className="w-full">
-            <Button className="w-full">Login</Button>
-          </Link>
-        )}
-        <Link href="/campaigns" className="w-full">
-          <Button variant="secondary" className="w-full">Generate Letter</Button>
-        </Link>
-      </div>
-    </header>
+      </header>
+      <div style={{ height: `${headerHeight}px` }} />
+    </>
   )
 }
