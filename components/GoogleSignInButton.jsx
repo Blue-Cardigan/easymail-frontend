@@ -7,7 +7,7 @@ export function GoogleSignInButton({ onClick }) {
       className="h-10 flex items-center justify-center hover:opacity-90 transition-opacity"
     >
       <Image
-        src="/signin-assets/Web (mobile + desktop)/svg/dark/web_dark_sq_ctn.svg"
+        src="/googlebutton/rectangle.svg"
         alt="Continue with Google"
         width={240}
         height={40}
