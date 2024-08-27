@@ -30,11 +30,12 @@ export default function Home() {
   }
 
   const carouselImages = [
-    '/landingpage/pageoftext.jpg',
-    '/landingpage/fountainpen.jpg',
-    '/landingpage/grouptyping.jpg',
-    '/landingpage/individualwriting.jpg',
-    '/landingpage/individualwritingbench.jpg',
+    '/frontpage/1.avif',
+    '/frontpage/2.webp',
+    '/frontpage/3.jpg',
+    '/frontpage/4.avif',
+    '/frontpage/5.jpg',
+    '/frontpage/6.webp',
   ]
 
   return (
@@ -45,10 +46,10 @@ export default function Home() {
       <main className="flex-grow container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div>
-            <h1 className="text-4xl font-bold mb-6">Empower Your Supporters with AI-Generated Letters</h1>
+            <h1 className="text-4xl font-bold mb-6">Ignite Change: Unleash the Power of AI-Driven Activism</h1>
             <p className="text-xl mb-8">
-              Easymail allows campaigning organisations to amplify their impact by generating unique, 
-              personalized letters for supporters to send to decision-makers.
+              Easymail revolutionizes grassroots movements, arming supporters with AI-crafted, 
+              hard-hitting letters that demand action from those in power. Join the movement.
             </p>
             <Link href="/campaigns">
               <Button size="lg">Try It Now</Button>
@@ -82,16 +83,16 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                title: 'Create',
-                description: 'Set up your campaign with your templates and research. Our AI will use these to generate personalized letters for your supporters.'
+                title: 'Strategise',
+                description: 'Craft your campaign blueprint with powerful templates and crucial research. Our AI weaponizes this information to generate compelling letters for your supporters.'
               },
               {
-                title: 'Share',
-                description: 'Distribute your campaign link to supporters. They can quickly generate unique, persuasive letters to send to decision-makers.'
+                title: 'Mobilise',
+                description: 'Galvanise supporters with your campaign link. They\'ll swiftly generate unique, hard-hitting letters to challenge decision-makers.'
               },
               {
-                title: 'Monitor',
-                description: 'Track your campaign\'s performance with our real-time analytics dashboard.'
+                title: 'Analyse',
+                description: 'Gauge your campaign\'s impact with our real-time analytics dashboard.'
               }
             ].map((step, index) => (
               <div key={index} className="bg-white p-6 rounded-lg shadow-md">
@@ -105,7 +106,7 @@ export default function Home() {
         <div className="mt-24 bg-blue-50 p-12 rounded-lg text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Amplify Your Campaign?</h2>
           <p className="text-xl mb-8">
-            Get in touch with us to create your own AI-powered letter campaign and make a bigger impact.
+            Get in touch to create your own AI-powered letter campaign and make a bigger impact.
           </p>
           <Link href="/contact">
             <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white">
