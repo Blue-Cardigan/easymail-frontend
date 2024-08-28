@@ -105,7 +105,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
         provider: 'google',
         options: {
           scopes: 'https://www.googleapis.com/auth/gmail.send',
-          redirectTo: `${window.location.origin}/auth/callback?returnTo=/${campaignId}`
+          redirectTo: `/auth/callback?returnTo=/${campaignId}`
         }
       })
       if (error) throw error
