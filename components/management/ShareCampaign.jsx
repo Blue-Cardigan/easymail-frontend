@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
-export default function ClientResponse({ campaignId, shareableUrl }) {
+export default function ShareCampaign({ shareableUrl }) {
   const [copied, setCopied] = useState(false)
 
   const handleCopyLink = () => {

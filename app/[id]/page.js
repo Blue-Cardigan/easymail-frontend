@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ConstituentForm } from '@/components/ConstituentForm'
-import ResponsePage from '@/components/ResponsePage'
+import { ConstituentForm } from '@/components/writing/SubmitForm'
+import ResponsePage from '@/components/writing/SendLetter'
 import CampaignNotFound from './not-found'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 

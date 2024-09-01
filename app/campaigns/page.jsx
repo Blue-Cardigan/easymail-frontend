@@ -35,19 +35,12 @@ export default function CampaignsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [user, setUser] = useState(null)
   const router = useRouter()
   const campaignsPerPage = 6
 
   useEffect(() => {
     fetchCampaigns()
-    checkUser()
   }, [])
-
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    setUser(user)
-  }
 
   const fetchCampaigns = async () => {
     setIsLoading(true)
