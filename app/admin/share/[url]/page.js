@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams } from 'next/navigation'
-import ClientResponse from '@components/management/ShareCampaign'
+import ShareCampaign from '@/components/management/ShareCampaign'
 
 export default function ShareCampaignPage() {
   const params = useParams()
@@ -9,7 +9,7 @@ export default function ShareCampaignPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-      <ClientResponse shareableUrl={url} />
+      <ShareCampaign shareableUrl={url} />
     </div>
   )
 }
