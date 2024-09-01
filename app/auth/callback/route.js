@@ -2,32 +2,28 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-export const dynamic = 'force-dynamic'
-
 export async function GET(req) {
-  const supabase = createRouteHandlerClient({ cookies })
+  console.log('GET request received at /auth/callback')
+  const cookieStore = cookies()
+  const supabase = createRouteHandlerClient({ 
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  })
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
   const returnTo = searchParams.get('returnTo')
-  const type = searchParams.get('type')
 
   if (code) {
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-    if (error) {
+    console.log('code:', code)
+    try {
+      await supabase.auth.exchangeCodeForSession(code)
+    } catch (error) {
       console.error('Error exchanging code for session:', error)
-      return NextResponse.redirect('/error')
+      return NextResponse.redirect(new URL('/error', req.url))
     }
 
     if (returnTo) {
-      if (process.env.NODE_ENV === 'production') {
-        // Construct the full return URL using NEXT_PUBLIC_SITE_URL
-        const fullReturnUrl = new URL(returnTo, process.env.NEXT_PUBLIC_SITE_URL)
-        fullReturnUrl.searchParams.append('fromLogin', 'true')
-        return NextResponse.redirect(fullReturnUrl)
-      } else {
-        // In development, use the provided line
-        return NextResponse.redirect(new URL(`${returnTo}?fromLogin=true`, req.url))
-      }
+      return NextResponse.redirect(new URL(returnTo, req.url))
     }
 
     if (type === 'user' || !type) {

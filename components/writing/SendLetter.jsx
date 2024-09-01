@@ -100,12 +100,12 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
         hasEdited: hasEdited,
         formData: JSON.parse(localStorage.getItem('formData'))
       }))
-
+      console.log('redirectTo:', `http://localhost:3000/auth/callback?returnTo=/${campaignId}`)
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           scopes: 'https://www.googleapis.com/auth/gmail.send',
-          redirectTo: `${window.location.origin}/auth/callback?returnTo=/${campaignId}`
+          redirectTo: `/auth/callback?returnTo=/${campaignId}`
         }
       })
       if (error) throw error
