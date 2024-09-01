@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import DesignCampaign from '@/components/DesignCampaign'
+import DesignCampaign from '@/components/D  esignCampaign'
 import { useRouter } from 'next/navigation'
 import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'

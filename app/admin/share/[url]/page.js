@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams } from 'next/navigation'
-import ClientResponse from '@/components/ClientResponse'
+import ClientResponse from '@components/management/ShareCampaign'
 
 export default function ShareCampaignPage() {
   const params = useParams()

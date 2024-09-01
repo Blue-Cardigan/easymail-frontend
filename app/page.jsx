@@ -118,7 +118,7 @@ export default function Home() {
 
       <Footer />
 
-      {isModalOpen && <ExistingCampaignModal onClose={() => setIsModalOpen(false)} />}
+      {/* {isModalOpen && <ExistingCampaignModal onClose={() => setIsModalOpen(false)} />} */}
     </div>
   )
 }
