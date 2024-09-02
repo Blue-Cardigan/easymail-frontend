@@ -38,6 +38,8 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
   const [recipientType, setRecipientType] = useState('all_mps')
   const [includeDepartments, setIncludeDepartments] = useState(false)
   const [selectedCauses, setSelectedCauses] = useState([])
+  const [shortDescriptionWordCount, setShortDescriptionWordCount] = useState(0)
+  const [longDescriptionWordCount, setLongDescriptionWordCount] = useState(0)
 
   const mpConstituencies = mpsData.map(mp => ({
     id: mp.Name,
@@ -70,6 +72,16 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
       ...prevData,
       [name]: value
     }))
+
+    if (name === 'short_description') {
+      setShortDescriptionWordCount(countWords(value))
+    } else if (name === 'long_description') {
+      setLongDescriptionWordCount(countWords(value))
+    }
+  }
+
+  const countWords = (text) => {
+    return text.trim().split(/\s+/).length
   }
 
   const handleCustomCausesChange = useCallback((causes) => {
@@ -274,7 +286,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             <h3 className="text-xl font-bold">Letter Recipients</h3>
             
             <div className="space-y-4">
-              <h4 className="text-lg font-semibold">Primary Recipients</h4>
+              <h4 className="text-md font-semibold">Primary Recipients</h4>
               <RadioGroup
                 onValueChange={handleRecipientTypeChange}
                 value={recipientType}
@@ -336,7 +348,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             </div>
             
             <div className="space-y-4">
-              <h4 className="text-lg font-semibold">Additional Recipients</h4>
+              <h4 className="text-md font-semibold">Additional Recipients</h4>
               <Button
                 variant="outline"
                 onClick={() => setShowDepartmentSearch(!showDepartmentSearch)}
@@ -393,19 +405,22 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="campaign_objectives">Short Description</Label>
+            <h3 className="text-lg font-bold">Short Description</h3>
             <Textarea
               id="campaign_objectives"
               name="short_description"
               placeholder="Provide a short description of the campaign and its objectives to display at the top of the campaign page (100 words max)."
               value={formData.short_description}
               onChange={handleChange}
-              className="min-h-[100px]"
+              className="min-h-[60px]"
               required
             />
+            <p className={`text-sm ${shortDescriptionWordCount > 100 ? 'text-red-500' : 'text-gray-500'}`}>
+              {shortDescriptionWordCount}/100 words
+            </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="evidence_data">Long Description</Label>
+            <h3 className="text-lg font-bold">Long Description</h3>
             <Textarea
               id="evidence_data"
               name="long_description"
@@ -415,6 +430,9 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
               className="min-h-[100px]"
               required
             />
+            <p className={`text-sm ${longDescriptionWordCount > 1500 ? 'text-red-500' : 'text-gray-500'}`}>
+              {longDescriptionWordCount}/1500 words
+            </p>
           </div>
           
           <div className="space-y-4">
@@ -528,7 +546,11 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
         </form>
       </CardContent>
       <CardFooter>
-        <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
+        <Button 
+          type="button" 
+          onClick={handleSubmit} 
+          disabled={isSubmitting || shortDescriptionWordCount > 100 || longDescriptionWordCount > 1500}
+        >
           {isSubmitting ? 'Submitting...' : 'Submit Campaign Prompt'}
         </Button>
       </CardFooter>
