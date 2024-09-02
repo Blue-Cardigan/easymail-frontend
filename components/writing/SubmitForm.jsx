@@ -41,6 +41,7 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
   const [ageError, setAgeError] = useState('')
   const [selectedReasons, setSelectedReasons] = useState([])
   const [selectedTones, setSelectedTones] = useState([])
+  const [selectedCustomCauses, setSelectedCustomCauses] = useState([])
   const [errors, setErrors] = useState({})
   const [user, setUser] = useState(null)
   const supabase = createClientComponentClient()
@@ -60,6 +61,12 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
     "Global Significance": "This issue has worldwide implications that concern me.",
     "Moral Imperative": "I feel a strong ethical obligation to support this cause.",
   }
+
+  const customCauses = campaignData.causes ? 
+    campaignData.causes.reduce((acc, cause) => {
+      acc[cause.title] = cause.description;
+      return acc;
+    }, {}) : {}
 
   const handleConstituencySearch = (e) => {
     const value = e.target.value
@@ -117,12 +124,16 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
       constituency: selectedConstituency ? selectedConstituency.constituency : campaignData.target,
       mpEmail: selectedConstituency ? selectedConstituency.email : null,
       age: age || null,
-      reasons: selectedReasons.map(reason => `${reason} - ${reasons[reason]}`),
+      reasons: [
+        ...selectedReasons.map(reason => `${reason} - ${reasons[reason]}`),
+        ...selectedCustomCauses.map(cause => `${cause} - ${customCauses[cause]}`)
+      ],
       tones: selectedTones
     }
 
     onSubmit(formData)
   }
+
 
   const isFormValid = () => {
     return (
@@ -253,35 +264,52 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
           <div className="grid gap-2">
             <Label>Why Is This Campaign Important To You? (Select up to 2)*</Label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {Object.entries(reasons).map(([reason, description]) => (
+            {Object.entries({...reasons, ...customCauses}).map(([cause, description]) => (
                 <Button
-                  key={reason}
+                  key={cause}
                   type="button"
-                  variant={selectedReasons.includes(reason) ? "default" : "outline"}
+                  variant={selectedReasons.includes(cause) || selectedCustomCauses.includes(cause) ? "default" : "outline"}
                   className={`h-auto flex flex-col items-start text-left p-4 space-y-2 w-full 
-                    ${errors.reason ? 'border-red-500' : ''}
-                    ${selectedReasons.length >= 2 && !selectedReasons.includes(reason) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={selectedReasons.length >= 2 && !selectedReasons.includes(reason)}
+                    ${errors.cause ? 'border-red-500' : ''}
+                    ${(selectedReasons.length + selectedCustomCauses.length) >= 2 && 
+                      !selectedReasons.includes(cause) && 
+                      !selectedCustomCauses.includes(cause) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={(selectedReasons.length + selectedCustomCauses.length) >= 2 && 
+                            !selectedReasons.includes(cause) && 
+                            !selectedCustomCauses.includes(cause)}
                   onClick={() => {
-                    if (selectedReasons.length < 2 || selectedReasons.includes(reason)) {
-                      setSelectedReasons(prevReasons => {
-                        if (prevReasons.includes(reason)) {
-                          return prevReasons.filter(r => r !== reason)
-                        } else if (prevReasons.length < 2) {
-                          return [...prevReasons, reason]
-                        }
-                        return prevReasons
-                      })
-                      setErrors(prev => ({ ...prev, reason: '' }))
+                    if ((selectedReasons.length + selectedCustomCauses.length) < 2 || 
+                        selectedReasons.includes(cause) || 
+                        selectedCustomCauses.includes(cause)) {
+                      if (Object.keys(reasons).includes(cause)) {
+                        setSelectedReasons(prevReasons => {
+                          if (prevReasons.includes(cause)) {
+                            return prevReasons.filter(r => r !== cause)
+                          } else if ((prevReasons.length + selectedCustomCauses.length) < 2) {
+                            return [...prevReasons, cause]
+                          }
+                          return prevReasons
+                        })
+                      } else {
+                        setSelectedCustomCauses(prevCauses => {
+                          if (prevCauses.includes(cause)) {
+                            return prevCauses.filter(c => c !== cause)
+                          } else if ((prevCauses.length + selectedReasons.length) < 2) {
+                            return [...prevCauses, cause]
+                          }
+                          return prevCauses
+                        })
+                      }
+                      setErrors(prev => ({ ...prev, cause: '' }))
                     }
                   }}
                 >
-                  <span className="font-bold text-lg w-full break-words">{reason}</span>
+                  <span className="font-bold text-lg w-full break-words">{cause}</span>
                   <span className="text-sm w-full whitespace-normal">{description}</span>
                 </Button>
               ))}
             </div>
-            {errors.reason && <span className="text-red-500 text-sm">{errors.reason}</span>}
+            {errors.cause && <span className="text-red-500 text-sm">{errors.cause}</span>}
           </div>
           <div className="grid gap-2">
             <Label>What Tone Do You Want to Write With? (Select up to 3)*</Label>

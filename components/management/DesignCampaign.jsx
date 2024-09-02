@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { PlusCircle, X, FileText, Upload } from 'lucide-react'
+import { CustomCauses } from "@/components/management/components/CustomCauses"
 
 export default function CampaignPromptDesigner({ campaignId, initialData, onSubmit, isSubmitting }) {
   const [formData, setFormData] = useState(initialData)
@@ -37,17 +38,26 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     }))
   }
 
+  const handleCustomCausesChange = useCallback((causes) => {
+    setFormData(prevData => ({
+      ...prevData,
+      causes: causes
+    }))
+  }, [])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitError(null)
 
     try {
-      onSubmit(formData)
+      await onSubmit(formData)
     } catch (error) {
       console.error('Error creating campaign:', error)
       setSubmitError(error.message || 'An error occurred while creating the campaign')
     }
   }
+
+
 
   const handlePlaintextToggle = () => {
     setShowPlaintextInput(!showPlaintextInput)
@@ -116,49 +126,54 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>New Campaign</CardTitle>
-        <CardDescription>Answer the following questions to design a detailed prompt for our LLM.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-2">
-            <Label htmlFor="campaign_name">Campaign Name</Label>
-            <Input
-              id="campaign_name"
-              name="campaign_name"
-              value={formData.campaign_name}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="campaign_objectives">Short Description</Label>
-            <Textarea
-              id="campaign_objectives"
-              name="short_description"
-              placeholder="Provide a short description of the campaign and its objectives to display at the top of the campaign page (100 words max)."
-              value={formData.short_description}
-              onChange={handleChange}
-              className="min-h-[100px]"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="evidence_data">Long Description</Label>
-            <Textarea
-              id="evidence_data"
-              name="long_description"
-              placeholder="Paste full campaign description here (1500 words max)."
-              value={formData.long_description}
-              onChange={handleChange}
-              className="min-h-[100px]"
-              required
-            />
-          </div>
-          
-          <div className="space-y-4">
-            <Label>Letter Templates (up to 3)</Label>
+      <form onSubmit={handleSubmit}>
+        <CardHeader>
+          <CardTitle>New Campaign</CardTitle>
+          <CardDescription>Answer the following questions to design a detailed prompt for our LLM.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="campaign_name">Campaign Name</Label>
+              <Input
+                id="campaign_name"
+                name="campaign_name"
+                value={formData.campaign_name}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="campaign_objectives">Short Description</Label>
+              <Textarea
+                id="campaign_objectives"
+                name="short_description"
+                placeholder="Provide a short description of the campaign and its objectives to display at the top of the campaign page (100 words max)."
+                value={formData.short_description}
+                onChange={handleChange}
+                className="min-h-[100px]"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="evidence_data">Long Description</Label>
+              <Textarea
+                id="evidence_data"
+                name="long_description"
+                placeholder="Paste full campaign description here (1500 words max)."
+                value={formData.long_description}
+                onChange={handleChange}
+                className="min-h-[100px]"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="custom_causes">Custom Causes</Label>
+              <CustomCauses onChange={handleCustomCausesChange} />
+            </div>
+            <div className="space-y-4">
+              <Label>Letter Templates (up to 3)</Label>
+
             
             {templates.map((template, index) => (
               <div key={index} className="flex items-center space-x-2 p-2 bg-gray-100 rounded">
@@ -227,25 +242,27 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
               </div>
             )}
 
-            {uploadError && (
+{uploadError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{uploadError}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+            
+            {submitError && (
               <Alert variant="destructive">
-                <AlertDescription>{uploadError}</AlertDescription>
+                <AlertDescription>{submitError}</AlertDescription>
               </Alert>
             )}
           </div>
-          
-          {submitError && (
-            <Alert variant="destructive">
-              <AlertDescription>{submitError}</AlertDescription>
-            </Alert>
-          )}
-        </form>
-      </CardContent>
-      <CardFooter>
-        <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
-          {isSubmitting ? 'Submitting...' : 'Submit Campaign Prompt'}
-        </Button>
-      </CardFooter>
+        </CardContent>
+        <CardFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Submitting...' : 'Submit Campaign Prompt'}
+          </Button>
+        </CardFooter>
+      </form>
     </Card>
   )
 }
+
