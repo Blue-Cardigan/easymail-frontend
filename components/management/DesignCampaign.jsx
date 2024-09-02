@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { PlusCircle, X, FileText, Upload } from 'lucide-react'
+import { PlusCircle, Plus, X, FileText, Upload } from 'lucide-react'
 import mpDepartments from '@/lib/mpDepartments.json'
 import mpsData from '@/lib/mps.json'
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -34,6 +34,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
   const [mpSuggestions, setMpSuggestions] = useState([])
   const [selectedMps, setSelectedMps] = useState([])
   const [recipientType, setRecipientType] = useState('all_mps')
+  const [includeDepartments, setIncludeDepartments] = useState(false)
 
   const mpConstituencies = mpsData.map(mp => ({
     id: mp.Name,
@@ -62,9 +63,18 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
 
   const handleRecipientTypeChange = (value) => {
     setRecipientType(value)
-    // Clear selected MPs when switching to 'all_mps'
     if (value === 'all_mps') {
       setSelectedMps([])
+    }
+  }
+
+  const toggleDepartments = (checked) => {
+    setIncludeDepartments(checked)
+    if (checked) {
+      setShowDepartmentSearch(true)
+    } else {
+      setShowDepartmentSearch(false)
+      setSelectedDepartments([])
     }
   }
 
@@ -199,6 +209,10 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     setSelectedMps(selectedMps.filter(mp => mp.id !== mpId))
   }
 
+  const clearSelectedMPs = () => {
+    setSelectedMps([])
+  }
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -218,77 +232,87 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             />
           </div>
 
-          {/* Updated Letter Recipients section */}
-          <div className="space-y-4">
-            <Label>Letter Recipients</Label>
-            <RadioGroup
-              onValueChange={handleRecipientTypeChange}
-              value={recipientType}
-              className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="all_mps" id="all_mps" />
-                <Label htmlFor="all_mps" className="cursor-pointer">All constituency MPs</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="specific_mps" id="specific_mps" />
-                <Label htmlFor="specific_mps" className="cursor-pointer">Type specific MPs</Label>
-              </div>
-            </RadioGroup>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Letter Recipients</h2>
             
-            {recipientType === 'specific_mps' && (
-              <div className="mt-2 space-y-2">
-                <Input
-                  type="text"
-                  placeholder="Search for an MP or constituency"
-                  value={mpSearch}
-                  onChange={handleMpSearch}
-                />
-                {mpSuggestions.length > 0 && (
-                  <ul className="max-h-60 overflow-auto border border-gray-200 rounded-md">
-                    {mpSuggestions.map((mp) => (
-                      <li
-                        key={mp.id}
-                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => addMp(mp)}
-                      >
-                        {mp.searchString}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {selectedMps.length > 0 && (
-                  <div className="mt-2">
-                    <Label>Selected MPs:</Label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {selectedMps.map((mp) => (
-                        <div
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Primary Recipients</h3>
+              <RadioGroup
+                onValueChange={handleRecipientTypeChange}
+                value={recipientType}
+                className="space-y-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="all_mps" id="all_mps" />
+                  <Label htmlFor="all_mps">All constituency MPs</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="specific_mps" id="specific_mps" />
+                  <Label htmlFor="specific_mps">Specific MPs</Label>
+                </div>
+              </RadioGroup>
+              
+              {recipientType === 'specific_mps' && (
+                <div className="ml-6 space-y-2">
+                  <Input
+                    type="text"
+                    placeholder="Search for an MP or constituency"
+                    value={mpSearch}
+                    onChange={handleMpSearch}
+                  />
+                  {mpSuggestions.length > 0 && (
+                    <ul className="max-h-60 overflow-auto border border-gray-200 rounded-md">
+                      {mpSuggestions.map((mp) => (
+                        <li
                           key={mp.id}
-                          className="flex items-center bg-gray-100 rounded-full px-3 py-1 cursor-pointer hover:bg-gray-200 transition-colors"
-                          onClick={() => removeMp(mp.id)}
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => addMp(mp)}
                         >
-                          <span>{mp.name} - {mp.constituency}</span>
-                          <X size={12} className="ml-2 text-gray-500" />
-                        </div>
+                          {mp.searchString}
+                        </li>
                       ))}
+                    </ul>
+                  )}
+                  {selectedMps.length > 0 && (
+                    <div className="mt-2">
+                      <div className="flex justify-between items-center">
+                        <Label>Selected MPs: {selectedMps.length}</Label>
+                        <Button variant="ghost" size="sm" onClick={clearSelectedMPs}>Clear all</Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {selectedMps.map((mp) => (
+                          <div
+                            key={mp.id}
+                            className="flex items-center bg-gray-100 rounded-full px-3 py-1 cursor-pointer hover:bg-gray-200 transition-colors"
+                            onClick={() => removeMp(mp.id)}
+                          >
+                            <span>{mp.name} - {mp.constituency}</span>
+                            <X size={12} className="ml-2 text-gray-500" />
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
             
-            {/* Department Search section (unchanged) */}
-            <div className="mt-4">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Additional Recipients</h3>
               <Button
-                type="button"
                 variant="outline"
                 onClick={() => setShowDepartmentSearch(!showDepartmentSearch)}
+                className="w-full justify-start"
               >
-                {showDepartmentSearch ? 'Hide Department Search' : 'Add Department'}
+                <Plus className="mr-2 h-4 w-4" />
+                Include specific government departments
+                {selectedDepartments.length > 0 && (
+                  <span className="ml-2 text-sm text-gray-500">({selectedDepartments.length} selected)</span>
+                )}
               </Button>
               
               {showDepartmentSearch && (
-                <div className="mt-2 space-y-2">
+                <div className="ml-6 space-y-2">
                   <Input
                     type="text"
                     placeholder="Search for a department or MP"
