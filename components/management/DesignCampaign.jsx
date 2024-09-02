@@ -8,12 +8,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { PlusCircle, Plus, X, FileText, Upload } from 'lucide-react'
+import { PlusCircle, Plus, X, FileText, Upload, Users, Building, FileSignature, ListChecks } from 'lucide-react'
 import mpDepartments from '@/lib/mpDepartments.json'
 import mpsData from '@/lib/mps.json'
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { CustomCauses } from "@/components/management/CustomCauses"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Progress } from "@/components/ui/progress"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function CampaignPromptDesigner({ campaignId, initialData, onSubmit, isSubmitting }) {
   const [formData, setFormData] = useState({
@@ -40,6 +43,9 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
   const [selectedCauses, setSelectedCauses] = useState([])
   const [shortDescriptionWordCount, setShortDescriptionWordCount] = useState(0)
   const [longDescriptionWordCount, setLongDescriptionWordCount] = useState(0)
+
+  const [currentStep, setCurrentStep] = useState(1)
+  const totalSteps = 5
 
   const mpConstituencies = mpsData.map(mp => ({
     id: mp.Name,
@@ -263,297 +269,337 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     }))
   }, [selectedCauses])
 
+  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, totalSteps))
+  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1))
+
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>New Campaign</CardTitle>
-        <CardDescription>Answer the following questions to design a detailed prompt for our LLM.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-2">
-            <h3 className="text-xl font-bold">Campaign Name</h3>
-            <Input
-              id="campaign_name"
-              name="campaign_name"
-              value={formData.campaign_name}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="space-y-6">
-            <h3 className="text-xl font-bold">Letter Recipients</h3>
-            
-            <div className="space-y-4">
-              <h4 className="text-md font-semibold">Primary Recipients</h4>
-              <RadioGroup
-                onValueChange={handleRecipientTypeChange}
-                value={recipientType}
-                className="space-y-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="all_mps" id="all_mps" />
-                  <Label htmlFor="all_mps">All constituency MPs</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="specific_mps" id="specific_mps" />
-                  <Label htmlFor="specific_mps">Specific MPs</Label>
-                </div>
-              </RadioGroup>
-              
-              {recipientType === 'specific_mps' && (
-                <div className="ml-6 space-y-2">
-                  <Input
-                    type="text"
-                    placeholder="Search for an MP or constituency"
-                    value={mpSearch}
-                    onChange={handleMpSearch}
-                  />
-                  {mpSuggestions.length > 0 && (
-                    <ul className="max-h-60 overflow-auto border border-gray-200 rounded-md">
-                      {mpSuggestions.map((mp) => (
-                        <li
-                          key={mp.id}
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => addMp(mp)}
-                        >
-                          {mp.searchString}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {selectedMps.length > 0 && (
-                    <div className="mt-2">
-                      <div className="flex justify-between items-center">
-                        <Label>Selected MPs: {selectedMps.length}</Label>
-                        <Button variant="ghost" size="sm" onClick={clearSelectedMPs}>Clear all</Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {selectedMps.map((mp) => (
-                          <div
-                            key={mp.id}
-                            className="flex items-center bg-gray-100 rounded-full px-3 py-1 cursor-pointer hover:bg-gray-200 transition-colors"
-                            onClick={() => removeMp(mp.id)}
-                          >
-                            <span>{mp.name} - {mp.constituency}</span>
-                            <X size={12} className="ml-2 text-gray-500" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            
-            <div className="space-y-4">
-              <h4 className="text-md font-semibold">Additional Recipients</h4>
-              <Button
-                variant="outline"
-                onClick={() => setShowDepartmentSearch(!showDepartmentSearch)}
-                className="w-full justify-start"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Include specific government departments
-                {selectedDepartments.length > 0 && (
-                  <span className="ml-2 text-sm text-gray-500">({selectedDepartments.length} selected)</span>
-                )}
-              </Button>
-              
-              {showDepartmentSearch && (
-                <div className="ml-6 space-y-2">
-                  <Input
-                    type="text"
-                    placeholder="Search for a department or MP"
-                    value={departmentSearch}
-                    onChange={handleDepartmentSearch}
-                  />
-                  {departmentSuggestions.length > 0 && (
-                    <ul className="max-h-60 overflow-auto border border-gray-200 rounded-md">
-                      {departmentSuggestions.map((dept) => (
-                        <li
-                          key={dept.id}
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                          onClick={() => addDepartment(dept)}
-                        >
-                          {dept.department} - {dept.mp}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {selectedDepartments.length > 0 && (
-                    <div className="mt-2">
-                      <Label>Selected Departments:</Label>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {selectedDepartments.map((dept) => (
-                          <div
-                            key={dept.id}
-                            className="flex items-center bg-gray-100 rounded-full px-3 py-1 cursor-pointer hover:bg-gray-200 transition-colors"
-                            onClick={() => removeDepartment(dept.id)}
-                          >
-                            <span>{dept.department} - {dept.mp}</span>
-                            <X size={12} className="ml-2 text-gray-500" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="text-lg font-bold">Short Description</h3>
-            <Textarea
-              id="campaign_objectives"
-              name="short_description"
-              placeholder="Provide a short description of the campaign and its objectives to display at the top of the campaign page (100 words max)."
-              value={formData.short_description}
-              onChange={handleChange}
-              className="min-h-[60px]"
-              required
-            />
-            <p className={`text-sm ${shortDescriptionWordCount > 100 ? 'text-red-500' : 'text-gray-500'}`}>
-              {shortDescriptionWordCount}/100 words
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-lg font-bold">Long Description</h3>
-            <Textarea
-              id="evidence_data"
-              name="long_description"
-              placeholder="Paste full campaign description here (1500 words max)."
-              value={formData.long_description}
-              onChange={handleChange}
-              className="min-h-[100px]"
-              required
-            />
-            <p className={`text-sm ${longDescriptionWordCount > 1500 ? 'text-red-500' : 'text-gray-500'}`}>
-              {longDescriptionWordCount}/1500 words
-            </p>
-          </div>
-          
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold">Causes</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {defaultCauses.map((cause) => (
-                <div key={cause.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={cause.id}
-                    checked={selectedCauses.includes(cause.id)}
-                    onCheckedChange={() => handleCauseChange(cause.id)}
-                  />
-                  <label
-                    htmlFor={cause.id}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {cause.label}
-                    <p className="text-sm text-muted-foreground">{cause.description}</p>
-                  </label>
-                </div>
-              ))}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="custom_causes">Custom Causes</Label>
-              <CustomCauses onChange={handleCustomCausesChange} />
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <Label>Letter Templates (up to 3)</Label>
-            
-            {templates.map((template, index) => (
-              <div key={index} className="flex items-center space-x-2 p-2 bg-gray-100 rounded">
-                <FileText size={20} />
-                <span className="flex-grow truncate">
-                  {template.type === 'file' ? template.name : `Pasted Template ${index + 1}`}
-                </span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => removeTemplate(index)}
-                >
-                  <X size={20} />
-                </Button>
-              </div>
-            ))}
-
-            {templates.length < 3 && (
+    <TooltipProvider>
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle>New Campaign</CardTitle>
+          <CardDescription>Design a detailed prompt for the AI in {totalSteps} steps.</CardDescription>
+          <Progress value={(currentStep / totalSteps) * 100} className="mt-2" />
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {currentStep === 1 && (
               <div className="space-y-4">
-                {currentTemplate.type === null ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <Button 
-                      type="button" 
-                      onClick={() => setCurrentTemplate({ type: 'paste', content: '' })}
-                      className="w-full h-24 flex flex-col items-center justify-center bg-white text-black border border-gray-300 hover:bg-gray-100"
-                      variant="outline"
-                    >
-                      <PlusCircle className="mb-2" size={24} />
-                      <span>Paste Text</span>
-                    </Button>
-                    <div 
-                      {...getRootProps()} 
-                      className="col-span-2 w-full h-24 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
-                    >
-                      <input {...getInputProps()} />
-                      <Upload size={24} className="mb-2" />
-                      <p>{isDragActive ? "Drop files here" : "Upload File"}</p>
-                    </div>
+                <h3 className="text-xl font-bold flex items-center"><FileSignature className="mr-2" /> Campaign Details</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="campaign_name">Campaign Name</Label>
+                  <Input
+                    id="campaign_name"
+                    name="campaign_name"
+                    value={formData.campaign_name}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="short_description">Short Description</Label>
+                  <Textarea
+                    id="short_description"
+                    name="short_description"
+                    placeholder="Brief overview of the campaign (100 words max)."
+                    value={formData.short_description}
+                    onChange={handleChange}
+                    className="min-h-[60px]"
+                    required
+                  />
+                  <div className="flex justify-between items-center">
+                    <p className={`text-sm ${shortDescriptionWordCount > 100 ? 'text-red-500' : 'text-gray-500'}`}>
+                      {shortDescriptionWordCount}/100 words
+                    </p>
+                    <Progress value={(shortDescriptionWordCount / 100) * 100} className="w-1/2" />
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Textarea
-                      placeholder="Paste your template text here..."
-                      value={currentTemplate.content}
-                      onChange={(e) => setCurrentTemplate({ ...currentTemplate, content: e.target.value })}
-                      className="min-h-[100px]"
-                    />
-                    <div className="flex justify-end space-x-2">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => setCurrentTemplate({ type: null, content: '' })}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="button" 
-                        onClick={() => addTemplate('paste', currentTemplate.content)}
-                        disabled={!currentTemplate.content.trim()}
-                      >
-                        Add Template
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             )}
 
-            {uploadError && (
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold flex items-center"><Users className="mr-2" /> Letter Recipients</h3>
+                <div className="space-y-4">
+                  <h4 className="text-md font-semibold">Primary Recipients</h4>
+                  <RadioGroup
+                    onValueChange={handleRecipientTypeChange}
+                    value={recipientType}
+                    className="space-y-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="all_mps" id="all_mps" />
+                      <Label htmlFor="all_mps">All constituency MPs</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="specific_mps" id="specific_mps" />
+                      <Label htmlFor="specific_mps">Specific MPs</Label>
+                    </div>
+                  </RadioGroup>
+                  
+                  {recipientType === 'specific_mps' && (
+                    <div className="ml-6 space-y-2">
+                      <Select
+                        onValueChange={(value) => addMp(JSON.parse(value))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an MP" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mpConstituencies.map((mp) => (
+                            <SelectItem key={mp.id} value={JSON.stringify(mp)}>
+                              {mp.searchString}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedMps.length > 0 && (
+                        <div className="mt-2">
+                          <div className="flex justify-between items-center">
+                            <Label>Selected MPs: {selectedMps.length}</Label>
+                            <Button variant="ghost" size="sm" onClick={clearSelectedMPs}>Clear all</Button>
+                          </div>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {selectedMps.map((mp) => (
+                              <div
+                                key={mp.id}
+                                className="flex items-center bg-gray-100 rounded-full px-3 py-1 cursor-pointer hover:bg-gray-200 transition-colors"
+                                onClick={() => removeMp(mp.id)}
+                              >
+                                <span>{mp.name} - {mp.constituency}</span>
+                                <X size={12} className="ml-2 text-gray-500" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="space-y-4">
+                  <h4 className="text-md font-semibold">Additional Recipients</h4>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        onClick={(e) => {
+                          e.preventDefault(); // Prevent form submission
+                          setShowDepartmentSearch(!showDepartmentSearch);
+                        }}
+                        className="w-full justify-start"
+                        type="button" // Explicitly set button type to prevent form submission
+                      >
+                        <Building className="mr-2 h-4 w-4" />
+                        Departments
+                        {selectedDepartments.length > 0 && (
+                          <span className="ml-2 text-sm text-gray-500">({selectedDepartments.length} selected)</span>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Include specific departments</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  {showDepartmentSearch && (
+                    <div className="ml-6 space-y-2">
+                      <Select
+                        onValueChange={(value) => addDepartment(JSON.parse(value))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mpDepartments.map((dept) => (
+                            <SelectItem key={dept.id} value={JSON.stringify(dept)}>
+                              {dept.department} - {dept.mp}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedDepartments.length > 0 && (
+                        <div className="mt-2">
+                          <Label>Selected Departments:</Label>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {selectedDepartments.map((dept) => (
+                              <div
+                                key={dept.id}
+                                className="flex items-center bg-gray-100 rounded-full px-3 py-1 cursor-pointer hover:bg-gray-200 transition-colors"
+                                onClick={() => removeDepartment(dept.id)}
+                              >
+                                <span>{dept.department} - {dept.mp}</span>
+                                <X size={12} className="ml-2 text-gray-500" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {currentStep === 3 && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold flex items-center"><ListChecks className="mr-2" /> Causes</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {defaultCauses.map((cause) => (
+                    <div key={cause.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={cause.id}
+                        checked={selectedCauses.includes(cause.id)}
+                        onCheckedChange={() => handleCauseChange(cause.id)}
+                      />
+                      <label
+                        htmlFor={cause.id}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {cause.label}
+                        <p className="text-sm text-muted-foreground">{cause.description}</p>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="custom_causes">Custom Causes</Label>
+                  <CustomCauses onChange={handleCustomCausesChange} />
+                </div>
+              </div>
+            )}
+
+            {currentStep === 4 && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold flex items-center"><FileText className="mr-2" /> Detailed Description</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="long_description">Campaign Details</Label>
+                  <Textarea
+                    id="long_description"
+                    name="long_description"
+                    placeholder="Provide detailed information, statistics, and context for the AI (1500 words max)."
+                    value={formData.long_description}
+                    onChange={handleChange}
+                    className="min-h-[200px]"
+                    required
+                  />
+                  <div className="flex justify-between items-center">
+                    <p className={`text-sm ${longDescriptionWordCount > 1500 ? 'text-red-500' : 'text-gray-500'}`}>
+                      {longDescriptionWordCount}/1500 words
+                    </p>
+                    <Progress value={(longDescriptionWordCount / 1500) * 100} className="w-1/2" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 5 && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold flex items-center"><Upload className="mr-2" /> Letter Templates</h3>
+                <Label>Upload or paste up to 3 templates</Label>
+                
+                {templates.map((template, index) => (
+                  <div key={index} className="flex items-center space-x-2 p-2 bg-gray-100 rounded">
+                    <FileText size={20} />
+                    <span className="flex-grow truncate">
+                      {template.type === 'file' ? template.name : `Pasted Template ${index + 1}`}
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => removeTemplate(index)}
+                    >
+                      <X size={20} />
+                    </Button>
+                  </div>
+                ))}
+
+                {templates.length < 3 && (
+                  <div className="space-y-4">
+                    {currentTemplate.type === null ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <Button 
+                          type="button" 
+                          onClick={() => setCurrentTemplate({ type: 'paste', content: '' })}
+                          className="w-full h-24 flex flex-col items-center justify-center bg-white text-black border border-gray-300 hover:bg-gray-100"
+                          variant="outline"
+                        >
+                          <PlusCircle className="mb-2" size={24} />
+                          <span>Paste Text</span>
+                        </Button>
+                        <div 
+                          {...getRootProps()} 
+                          className="col-span-2 w-full h-24 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
+                        >
+                          <input {...getInputProps()} />
+                          <Upload size={24} className="mb-2" />
+                          <p>{isDragActive ? "Drop files here" : "Upload File"}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Textarea
+                          placeholder="Paste your template text here..."
+                          value={currentTemplate.content}
+                          onChange={(e) => setCurrentTemplate({ ...currentTemplate, content: e.target.value })}
+                          className="min-h-[100px]"
+                        />
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => setCurrentTemplate({ type: null, content: '' })}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            type="button" 
+                            onClick={() => addTemplate('paste', currentTemplate.content)}
+                            disabled={!currentTemplate.content.trim()}
+                          >
+                            Add Template
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {uploadError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{uploadError}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            )}
+            
+            {submitError && (
               <Alert variant="destructive">
-                <AlertDescription>{uploadError}</AlertDescription>
+                <AlertDescription>{submitError}</AlertDescription>
               </Alert>
             )}
-          </div>
-          
-          {submitError && (
-            <Alert variant="destructive">
-              <AlertDescription>{submitError}</AlertDescription>
-            </Alert>
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          {currentStep > 1 && (
+            <Button type="button" onClick={prevStep} variant="outline">
+              Previous
+            </Button>
           )}
-        </form>
-      </CardContent>
-      <CardFooter>
-        <Button 
-          type="button" 
-          onClick={handleSubmit} 
-          disabled={isSubmitting || shortDescriptionWordCount > 100 || longDescriptionWordCount > 1500}
-        >
-          {isSubmitting ? 'Submitting...' : 'Submit Campaign Prompt'}
-        </Button>
-      </CardFooter>
-    </Card>
+          {currentStep < totalSteps ? (
+            <Button type="button" onClick={nextStep}>
+              Next
+            </Button>
+          ) : (
+            <Button 
+              type="button" 
+              onClick={handleSubmit} 
+              disabled={isSubmitting || shortDescriptionWordCount > 100 || longDescriptionWordCount > 1500}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Campaign Prompt'}
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
+    </TooltipProvider>
   )
 }
