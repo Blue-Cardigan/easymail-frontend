@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -12,6 +12,8 @@ import { PlusCircle, Plus, X, FileText, Upload } from 'lucide-react'
 import mpDepartments from '@/lib/mpDepartments.json'
 import mpsData from '@/lib/mps.json'
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { CustomCauses } from "@/components/management/CustomCauses"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function CampaignPromptDesigner({ campaignId, initialData, onSubmit, isSubmitting }) {
   const [formData, setFormData] = useState({
@@ -35,6 +37,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
   const [selectedMps, setSelectedMps] = useState([])
   const [recipientType, setRecipientType] = useState('all_mps')
   const [includeDepartments, setIncludeDepartments] = useState(false)
+  const [selectedCauses, setSelectedCauses] = useState([])
 
   const mpConstituencies = mpsData.map(mp => ({
     id: mp.Name,
@@ -43,6 +46,14 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     email: mp.Email,
     searchString: `${mp.Name} - ${mp.Constituency}`
   }))
+
+  const defaultCauses = [
+    { id: 'personal', label: 'Personal Impact', description: 'This issue directly affects me or my loved ones.' },
+    { id: 'community', label: 'Community Concern', description: 'I\'m worried about how this impacts my local community.' },
+    { id: 'national', label: 'National Interest', description: 'I believe this is crucial for the future of our country.' },
+    { id: 'global', label: 'Global Significance', description: 'This issue has worldwide implications that concern me.' },
+    { id: 'moral', label: 'Moral Imperative', description: 'I feel a strong ethical obligation to support this cause.' },
+  ]
 
   useEffect(() => {
     if (initialData) {
@@ -60,6 +71,13 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
       [name]: value
     }))
   }
+
+  const handleCustomCausesChange = useCallback((causes) => {
+    setFormData(prevData => ({
+      ...prevData,
+      causes: causes
+    }))
+  }, [])
 
   const handleRecipientTypeChange = (value) => {
     setRecipientType(value)
@@ -213,6 +231,26 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     setSelectedMps([])
   }
 
+  const handleCauseChange = (causeId) => {
+    setSelectedCauses(prev => {
+      if (prev.includes(causeId)) {
+        return prev.filter(id => id !== causeId)
+      } else {
+        return [...prev, causeId]
+      }
+    })
+  }
+
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      causes: [
+        ...selectedCauses.map(id => defaultCauses.find(cause => cause.id === id).label),
+        ...(prev.causes || []).filter(cause => !defaultCauses.some(dc => dc.label === cause))
+      ]
+    }))
+  }, [selectedCauses])
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -222,7 +260,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
       <CardContent>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="campaign_name">Campaign Name</Label>
+            <h3 className="text-xl font-bold">Campaign Name</h3>
             <Input
               id="campaign_name"
               name="campaign_name"
@@ -233,10 +271,10 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
           </div>
 
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Letter Recipients</h2>
+            <h3 className="text-xl font-bold">Letter Recipients</h3>
             
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Primary Recipients</h3>
+              <h4 className="text-lg font-semibold">Primary Recipients</h4>
               <RadioGroup
                 onValueChange={handleRecipientTypeChange}
                 value={recipientType}
@@ -298,7 +336,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             </div>
             
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Additional Recipients</h3>
+              <h4 className="text-lg font-semibold">Additional Recipients</h4>
               <Button
                 variant="outline"
                 onClick={() => setShowDepartmentSearch(!showDepartmentSearch)}
@@ -377,6 +415,32 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
               className="min-h-[100px]"
               required
             />
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold">Causes</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {defaultCauses.map((cause) => (
+                <div key={cause.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={cause.id}
+                    checked={selectedCauses.includes(cause.id)}
+                    onCheckedChange={() => handleCauseChange(cause.id)}
+                  />
+                  <label
+                    htmlFor={cause.id}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {cause.label}
+                    <p className="text-sm text-muted-foreground">{cause.description}</p>
+                  </label>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="custom_causes">Custom Causes</Label>
+              <CustomCauses onChange={handleCustomCausesChange} />
+            </div>
           </div>
           
           <div className="space-y-4">
