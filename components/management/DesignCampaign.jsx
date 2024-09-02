@@ -9,9 +9,16 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { PlusCircle, X, FileText, Upload } from 'lucide-react'
+import mpDepartments from '@/lib/mpDepartments.json'
+import mpsData from '@/lib/mps.json'
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 export default function CampaignPromptDesigner({ campaignId, initialData, onSubmit, isSubmitting }) {
-  const [formData, setFormData] = useState(initialData)
+  const [formData, setFormData] = useState({
+    ...initialData,
+    recipient_type: 'all_mps',
+    specific_mps: '',
+  })
   const [parsedTemplates, setParsedTemplates] = useState([])
   const [uploadError, setUploadError] = useState(null)
   const [submitError, setSubmitError] = useState(null)
@@ -19,6 +26,22 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
   const [plaintextTemplate, setPlaintextTemplate] = useState("")
   const [templates, setTemplates] = useState([])
   const [currentTemplate, setCurrentTemplate] = useState({ type: null, content: '' })
+  const [departmentSearch, setDepartmentSearch] = useState('')
+  const [departmentSuggestions, setDepartmentSuggestions] = useState([])
+  const [selectedDepartments, setSelectedDepartments] = useState([])
+  const [showDepartmentSearch, setShowDepartmentSearch] = useState(false)
+  const [mpSearch, setMpSearch] = useState('')
+  const [mpSuggestions, setMpSuggestions] = useState([])
+  const [selectedMps, setSelectedMps] = useState([])
+  const [recipientType, setRecipientType] = useState('all_mps')
+
+  const mpConstituencies = mpsData.map(mp => ({
+    id: mp.Name,
+    name: mp.Name,
+    constituency: mp.Constituency,
+    email: mp.Email,
+    searchString: `${mp.Name} - ${mp.Constituency}`
+  }))
 
   useEffect(() => {
     if (initialData) {
@@ -35,6 +58,14 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
       ...prevData,
       [name]: value
     }))
+  }
+
+  const handleRecipientTypeChange = (value) => {
+    setRecipientType(value)
+    // Clear selected MPs when switching to 'all_mps'
+    if (value === 'all_mps') {
+      setSelectedMps([])
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -114,6 +145,60 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     maxFiles: 3 - templates.length
   })
 
+  const handleDepartmentSearch = (e) => {
+    const value = e.target.value
+    setDepartmentSearch(value)
+
+    if (value.length > 0) {
+      const filteredSuggestions = mpDepartments.filter(
+        (dept) => 
+          dept.department.toLowerCase().includes(value.toLowerCase()) ||
+          dept.mp.toLowerCase().includes(value.toLowerCase())
+      )
+      setDepartmentSuggestions(filteredSuggestions)
+    } else {
+      setDepartmentSuggestions([])
+    }
+  }
+
+  const addDepartment = (department) => {
+    if (!selectedDepartments.some(dept => dept.id === department.id)) {
+      setSelectedDepartments([...selectedDepartments, department])
+    }
+    setDepartmentSearch('')
+    setDepartmentSuggestions([])
+  }
+
+  const removeDepartment = (departmentId) => {
+    setSelectedDepartments(selectedDepartments.filter(dept => dept.id !== departmentId))
+  }
+
+  const handleMpSearch = (e) => {
+    const value = e.target.value
+    setMpSearch(value)
+
+    if (value.length > 0) {
+      const filteredSuggestions = mpConstituencies.filter(
+        (mp) => mp.searchString.toLowerCase().includes(value.toLowerCase())
+      )
+      setMpSuggestions(filteredSuggestions)
+    } else {
+      setMpSuggestions([])
+    }
+  }
+
+  const addMp = (mp) => {
+    if (!selectedMps.some(selectedMp => selectedMp.id === mp.id)) {
+      setSelectedMps([...selectedMps, mp])
+    }
+    setMpSearch('')
+    setMpSuggestions([])
+  }
+
+  const removeMp = (mpId) => {
+    setSelectedMps(selectedMps.filter(mp => mp.id !== mpId))
+  }
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -132,6 +217,119 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
               required
             />
           </div>
+
+          {/* Updated Letter Recipients section */}
+          <div className="space-y-4">
+            <Label>Letter Recipients</Label>
+            <RadioGroup
+              onValueChange={handleRecipientTypeChange}
+              value={recipientType}
+              className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="all_mps" id="all_mps" />
+                <Label htmlFor="all_mps" className="cursor-pointer">All constituency MPs</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="specific_mps" id="specific_mps" />
+                <Label htmlFor="specific_mps" className="cursor-pointer">Type specific MPs</Label>
+              </div>
+            </RadioGroup>
+            
+            {recipientType === 'specific_mps' && (
+              <div className="mt-2 space-y-2">
+                <Input
+                  type="text"
+                  placeholder="Search for an MP or constituency"
+                  value={mpSearch}
+                  onChange={handleMpSearch}
+                />
+                {mpSuggestions.length > 0 && (
+                  <ul className="max-h-60 overflow-auto border border-gray-200 rounded-md">
+                    {mpSuggestions.map((mp) => (
+                      <li
+                        key={mp.id}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => addMp(mp)}
+                      >
+                        {mp.searchString}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {selectedMps.length > 0 && (
+                  <div className="mt-2">
+                    <Label>Selected MPs:</Label>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {selectedMps.map((mp) => (
+                        <div
+                          key={mp.id}
+                          className="flex items-center bg-gray-100 rounded-full px-3 py-1 cursor-pointer hover:bg-gray-200 transition-colors"
+                          onClick={() => removeMp(mp.id)}
+                        >
+                          <span>{mp.name} - {mp.constituency}</span>
+                          <X size={12} className="ml-2 text-gray-500" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Department Search section (unchanged) */}
+            <div className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowDepartmentSearch(!showDepartmentSearch)}
+              >
+                {showDepartmentSearch ? 'Hide Department Search' : 'Add Department'}
+              </Button>
+              
+              {showDepartmentSearch && (
+                <div className="mt-2 space-y-2">
+                  <Input
+                    type="text"
+                    placeholder="Search for a department or MP"
+                    value={departmentSearch}
+                    onChange={handleDepartmentSearch}
+                  />
+                  {departmentSuggestions.length > 0 && (
+                    <ul className="max-h-60 overflow-auto border border-gray-200 rounded-md">
+                      {departmentSuggestions.map((dept) => (
+                        <li
+                          key={dept.id}
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => addDepartment(dept)}
+                        >
+                          {dept.department} - {dept.mp}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {selectedDepartments.length > 0 && (
+                    <div className="mt-2">
+                      <Label>Selected Departments:</Label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {selectedDepartments.map((dept) => (
+                          <div
+                            key={dept.id}
+                            className="flex items-center bg-gray-100 rounded-full px-3 py-1 cursor-pointer hover:bg-gray-200 transition-colors"
+                            onClick={() => removeDepartment(dept.id)}
+                          >
+                            <span>{dept.department} - {dept.mp}</span>
+                            <X size={12} className="ml-2 text-gray-500" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="campaign_objectives">Short Description</Label>
             <Textarea
