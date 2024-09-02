@@ -63,6 +63,8 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     { id: 'moral', label: 'Moral Imperative', description: 'I feel a strong ethical obligation to support this cause.' },
   ]
 
+  const [allCausesSelected, setAllCausesSelected] = useState(false)
+
   useEffect(() => {
     if (initialData) {
       setFormData(prevData => ({
@@ -259,6 +261,19 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     })
   }
 
+  const handleSelectAllCauses = (checked) => {
+    setAllCausesSelected(checked)
+    if (checked) {
+      setSelectedCauses(defaultCauses.map(cause => cause.id))
+    } else {
+      setSelectedCauses([])
+    }
+  }
+
+  useEffect(() => {
+    setAllCausesSelected(selectedCauses.length === defaultCauses.length)
+  }, [selectedCauses])
+
   useEffect(() => {
     setFormData(prev => ({
       ...prev,
@@ -307,10 +322,10 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
                     required
                   />
                   <div className="flex justify-between items-center">
-                    <p className={`text-sm ${shortDescriptionWordCount > 100 ? 'text-red-500' : 'text-gray-500'}`}>
-                      {shortDescriptionWordCount}/100 words
+                    <p className={`text-sm ${shortDescriptionWordCount > 50 ? 'text-red-500' : 'text-gray-500'}`}>
+                      {shortDescriptionWordCount}/50 words
                     </p>
-                    <Progress value={(shortDescriptionWordCount / 100) * 100} className="w-1/2" />
+                    <Progress value={(shortDescriptionWordCount / 50) * 100} className="w-1/2" />
                   </div>
                 </div>
               </div>
@@ -443,6 +458,19 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             {currentStep === 3 && (
               <div className="space-y-4">
                 <h3 className="text-xl font-bold flex items-center"><ListChecks className="mr-2" /> Causes</h3>
+                <div className="flex items-center space-x-2 mb-4">
+                  <Checkbox
+                    id="select-all-causes"
+                    checked={allCausesSelected}
+                    onCheckedChange={handleSelectAllCauses}
+                  />
+                  <label
+                    htmlFor="select-all-causes"
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    {allCausesSelected ? 'Deselect All' : 'Select All'}
+                  </label>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {defaultCauses.map((cause) => (
                     <div key={cause.id} className="flex items-center space-x-2">
