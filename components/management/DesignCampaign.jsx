@@ -12,13 +12,21 @@ import { PlusCircle, Plus, X, FileText, Upload, Users, Building, FileSignature, 
 import mpDepartments from '@/lib/mpDepartments.json'
 import mpsData from '@/lib/mps.json'
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { CustomCauses } from "@/components/management/CustomCauses"
+import { CustomMotives } from "@/components/management/CustomMotives"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function CampaignPromptDesigner({ campaignId, initialData, onSubmit, isSubmitting }) {
+  const defaultMotives = [
+    { id: 'personal', label: 'Personal Impact', description: 'This issue directly affects me or my loved ones.' },
+    { id: 'community', label: 'Community Concern', description: 'I\'m worried about how this impacts my local community.' },
+    { id: 'national', label: 'National Interest', description: 'I believe this is crucial for the future of our country.' },
+    { id: 'global', label: 'Global Significance', description: 'This issue has worldwide implications that concern me.' },
+    { id: 'moral', label: 'Moral Imperative', description: 'I feel a strong ethical obligation to support this cause.' },
+  ]
+
   const [formData, setFormData] = useState({
     ...initialData,
     recipient_type: 'all_mps',
@@ -40,7 +48,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
   const [selectedMps, setSelectedMps] = useState([])
   const [recipientType, setRecipientType] = useState('all_mps')
   const [includeDepartments, setIncludeDepartments] = useState(false)
-  const [selectedCauses, setSelectedCauses] = useState([])
+  const [selectedMotives, setSelectedMotives] = useState(defaultMotives.map(cause => cause.id))
   const [shortDescriptionWordCount, setShortDescriptionWordCount] = useState(0)
   const [longDescriptionWordCount, setLongDescriptionWordCount] = useState(0)
 
@@ -55,15 +63,8 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     searchString: `${mp.Name} - ${mp.Constituency}`
   }))
 
-  const defaultCauses = [
-    { id: 'personal', label: 'Personal Impact', description: 'This issue directly affects me or my loved ones.' },
-    { id: 'community', label: 'Community Concern', description: 'I\'m worried about how this impacts my local community.' },
-    { id: 'national', label: 'National Interest', description: 'I believe this is crucial for the future of our country.' },
-    { id: 'global', label: 'Global Significance', description: 'This issue has worldwide implications that concern me.' },
-    { id: 'moral', label: 'Moral Imperative', description: 'I feel a strong ethical obligation to support this cause.' },
-  ]
-
-  const [allCausesSelected, setAllCausesSelected] = useState(false)
+  const [allMotivesSelected, setAllMotivesSelected] = useState(true)
+  const [validationErrors, setValidationErrors] = useState({})
 
   useEffect(() => {
     if (initialData) {
@@ -71,6 +72,14 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
         ...prevData,
         ...initialData
       }))
+      // If there are initial causes, update the selectedMotives and allMotivesSelected state
+      if (initialData.causes && initialData.causes.length > 0) {
+        const initialSelectedMotives = defaultMotives
+          .filter(cause => initialData.causes.includes(cause.label))
+          .map(cause => cause.id)
+        setSelectedMotives(initialSelectedMotives)
+        setAllMotivesSelected(initialSelectedMotives.length === defaultMotives.length)
+      }
     }
   }, [initialData])
 
@@ -92,7 +101,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     return text.trim().split(/\s+/).length
   }
 
-  const handleCustomCausesChange = useCallback((causes) => {
+  const handleCustomMotivesChange = useCallback((causes) => {
     setFormData(prevData => ({
       ...prevData,
       causes: causes
@@ -116,12 +125,56 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     }
   }
 
+  const validateForm = () => {
+    const errors = {}
+
+    if (!formData.campaign_name.trim()) {
+      errors.campaign_name = "Campaign name is required"
+    }
+
+    if (!formData.short_description.trim()) {
+      errors.short_description = "Short description is required"
+    }
+
+    if (!formData.long_description.trim()) {
+      errors.long_description = "Detailed description is required"
+    }
+
+    const totalSelectedMotivations = selectedMotives.length + (formData.causes ? formData.causes.length : 0)
+    if (totalSelectedMotivations < 2) {
+      errors.causes = "Please select at least two motivations"
+    }
+
+    setValidationErrors(errors)
+    return Object.keys(errors).length > 0
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitError(null)
 
+    const hasErrors = validateForm()
+    if (hasErrors) {
+      setSubmitError("Oops! Looks like you missed something.")
+      return
+    }
+
     try {
-      onSubmit(formData)
+      // Prepare the final form data
+      const finalFormData = {
+        ...formData,
+        recipient_type: recipientType,
+        specific_mps: selectedMps,
+        departments: selectedDepartments,
+        causes: [
+          ...selectedMotives.map(id => defaultMotives.find(cause => cause.id === id).label),
+          ...(formData.causes || [])
+        ],
+        templates: templates
+      }
+
+      console.log("Submitting form data:", finalFormData)
+      await onSubmit(finalFormData)
     } catch (error) {
       console.error('Error creating campaign:', error)
       setSubmitError(error.message || 'An error occurred while creating the campaign')
@@ -229,7 +282,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
       const filteredSuggestions = mpConstituencies.filter(
         (mp) => mp.searchString.toLowerCase().includes(value.toLowerCase())
       )
-      setMpSuggestions(filteredSuggestions)
+      setMpSuggestions(filteredSuggestions.slice(0, 10)) // Limit to 10 suggestions
     } else {
       setMpSuggestions([])
     }
@@ -251,8 +304,8 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     setSelectedMps([])
   }
 
-  const handleCauseChange = (causeId) => {
-    setSelectedCauses(prev => {
+  const handleMotiveChange = (causeId) => {
+    setSelectedMotives(prev => {
       if (prev.includes(causeId)) {
         return prev.filter(id => id !== causeId)
       } else {
@@ -261,28 +314,28 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     })
   }
 
-  const handleSelectAllCauses = (checked) => {
-    setAllCausesSelected(checked)
+  const handleSelectAllMotives = (checked) => {
+    setAllMotivesSelected(checked)
     if (checked) {
-      setSelectedCauses(defaultCauses.map(cause => cause.id))
+      setSelectedMotives(defaultMotives.map(cause => cause.id))
     } else {
-      setSelectedCauses([])
+      setSelectedMotives([])
     }
   }
 
   useEffect(() => {
-    setAllCausesSelected(selectedCauses.length === defaultCauses.length)
-  }, [selectedCauses])
+    setAllMotivesSelected(selectedMotives.length === defaultMotives.length)
+  }, [selectedMotives])
 
   useEffect(() => {
     setFormData(prev => ({
       ...prev,
       causes: [
-        ...selectedCauses.map(id => defaultCauses.find(cause => cause.id === id).label),
-        ...(prev.causes || []).filter(cause => !defaultCauses.some(dc => dc.label === cause))
+        ...selectedMotives.map(id => defaultMotives.find(cause => cause.id === id).label),
+        ...(prev.causes || []).filter(cause => !defaultMotives.some(dc => dc.label === cause))
       ]
     }))
-  }, [selectedCauses])
+  }, [selectedMotives])
 
   const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, totalSteps))
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1))
@@ -310,13 +363,16 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
                     onChange={handleChange}
                     required
                   />
+                  {validationErrors.campaign_name && (
+                    <p className="text-red-500 text-sm">{validationErrors.campaign_name}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="short_description">Short Description</Label>
                   <Textarea
                     id="short_description"
                     name="short_description"
-                    placeholder="Brief overview of the campaign (100 words max)."
+                    placeholder="Brief overview of the campaign (50 words max)."
                     value={formData.short_description}
                     onChange={handleChange}
                     className="min-h-[60px]"
@@ -328,6 +384,9 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
                     </p>
                     <Progress value={(shortDescriptionWordCount / 50) * 100} className="w-1/2" />
                   </div>
+                  {validationErrors.short_description && (
+                    <p className="text-red-500 text-sm">{validationErrors.short_description}</p>
+                  )}
                 </div>
               </div>
             )}
@@ -355,20 +414,27 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
                   
                   {recipientType === 'specific_mps' && (
                     <div className="ml-6 space-y-2">
-                      <Select
-                        onValueChange={(value) => addMp(JSON.parse(value))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select an MP" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mpConstituencies.map((mp) => (
-                            <SelectItem key={mp.id} value={JSON.stringify(mp)}>
-                              {mp.searchString}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          placeholder="Search for an MP or constituency"
+                          value={mpSearch}
+                          onChange={handleMpSearch}
+                        />
+                        {mpSuggestions.length > 0 && (
+                          <ul className="absolute z-10 w-full bg-white border border-gray-300 mt-1 max-h-60 overflow-auto rounded-md shadow-lg">
+                            {mpSuggestions.map((mp) => (
+                              <li
+                                key={mp.id}
+                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                onClick={() => addMp(mp)}
+                              >
+                                {mp.searchString}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
                       {selectedMps.length > 0 && (
                         <div className="mt-2">
                           <div className="flex justify-between items-center">
@@ -465,23 +531,23 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
                 <div className="flex items-center space-x-2 mb-4">
                   <Checkbox
                     id="select-all-causes"
-                    checked={allCausesSelected}
-                    onCheckedChange={handleSelectAllCauses}
+                    checked={allMotivesSelected}
+                    onCheckedChange={handleSelectAllMotives}
                   />
                   <label
                     htmlFor="select-all-causes"
                     className="text-sm font-medium leading-none cursor-pointer"
                   >
-                    {allCausesSelected ? 'Deselect All' : 'Select All'}
+                    {allMotivesSelected ? 'Deselect All' : 'Select All'}
                   </label>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {defaultCauses.map((cause) => (
+                  {defaultMotives.map((cause) => (
                     <div key={cause.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={cause.id}
-                        checked={selectedCauses.includes(cause.id)}
-                        onCheckedChange={() => handleCauseChange(cause.id)}
+                        checked={selectedMotives.includes(cause.id)}
+                        onCheckedChange={() => handleMotiveChange(cause.id)}
                       />
                       <label
                         htmlFor={cause.id}
@@ -493,9 +559,12 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
                     </div>
                   ))}
                 </div>
+                {validationErrors.causes && (
+                  <p className="text-red-500 text-sm">{validationErrors.causes}</p>
+                )}
                 <div className="space-y-2">
-                  <Label htmlFor="custom_causes">Custom Causes</Label>
-                  <CustomCauses onChange={handleCustomCausesChange} />
+                  <Label htmlFor="custom_causes">Custom Motives</Label>
+                  <CustomMotives onChange={handleCustomMotivesChange} />
                 </div>
               </div>
             )}
@@ -521,6 +590,9 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
                     </p>
                     <Progress value={(longDescriptionWordCount / 1500) * 100} className="w-1/2" />
                   </div>
+                  {validationErrors.long_description && (
+                    <p className="text-red-500 text-sm">{validationErrors.long_description}</p>
+                  )}
                 </div>
               </div>
             )}
@@ -628,7 +700,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             <Button 
               type="button" 
               onClick={handleSubmit} 
-              disabled={isSubmitting || shortDescriptionWordCount > 100 || longDescriptionWordCount > 1500}
+              disabled={isSubmitting}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Campaign Prompt'}
             </Button>
