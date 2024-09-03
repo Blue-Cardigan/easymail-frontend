@@ -84,15 +84,15 @@ export default function Home() {
             {[
               {
                 title: 'Strategise',
-                description: 'Craft your campaign blueprint with powerful templates and crucial research. Our AI weaponizes this information to generate compelling letters for your supporters.'
+                description: 'Craft powerful templates using your crucial research. Our AI weaponises this information to generate compelling letters for your supporters.'
               },
               {
                 title: 'Mobilise',
-                description: 'Galvanise supporters with your campaign link. They\'ll swiftly generate unique, hard-hitting letters to challenge decision-makers.'
+                description: 'Share the campaign link with your supporters. They\'ll swiftly generate unique, hard-hitting letters to challenge decision-makers.'
               },
               {
                 title: 'Analyse',
-                description: 'Gauge your campaign\'s impact with our real-time analytics dashboard.'
+                description: 'Access our real-time analytics dashboard to gauge your campaign\'s impact.'
               }
             ].map((step, index) => (
               <div key={index} className="bg-white p-6 rounded-lg shadow-md">
