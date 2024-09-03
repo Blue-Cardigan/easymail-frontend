@@ -55,11 +55,24 @@ export default function CampaignDesignPage({ params }) {
     setFormData(updatedData)
   }
 
+  const validateFormData = (data) => {
+    const requiredFields = ['campaign_name', 'short_description', 'long_description']
+    for (let field of requiredFields) {
+      if (!data[field] || data[field].trim() === '') {
+        throw new Error(`${field} is required`)
+      }
+    }
+    // Add any other specific validations here
+  }
+
   const handleSubmit = async (submittedFormData) => {
     setIsSubmitting(true)
     setError(null)
 
     try {
+      validateFormData(submittedFormData)
+      console.log('Submitting form data:', submittedFormData) // Add this line
+
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 

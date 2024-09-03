@@ -64,6 +64,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
   ]
 
   const [allCausesSelected, setAllCausesSelected] = useState(false)
+  const [validationErrors, setValidationErrors] = useState({})
 
   useEffect(() => {
     if (initialData) {
@@ -116,12 +117,67 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
     }
   }
 
+  const validateForm = () => {
+    const errors = {}
+
+    if (!formData.campaign_name.trim()) {
+      errors.campaign_name = "Campaign name is required"
+    }
+
+    if (!formData.short_description.trim()) {
+      errors.short_description = "Short description is required"
+    } else if (countWords(formData.short_description) > 50) {
+      errors.short_description = "Short description should not exceed 50 words"
+    }
+
+    if (!formData.long_description.trim()) {
+      errors.long_description = "Detailed description is required"
+    } else if (countWords(formData.long_description) > 1500) {
+      errors.long_description = "Detailed description should not exceed 1500 words"
+    }
+
+    if (recipientType === 'specific_mps' && selectedMps.length === 0) {
+      errors.recipients = "Please select at least one MP"
+    }
+
+    if (selectedCauses.length === 0 && (!formData.causes || formData.causes.length === 0)) {
+      errors.causes = "Please select at least one cause"
+    }
+
+    if (templates.length === 0) {
+      errors.templates = "Please add at least one letter template"
+    }
+
+    setValidationErrors(errors)
+    return errors
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitError(null)
 
+    const errors = validateForm()
+    if (Object.keys(errors).length > 0) {
+      setSubmitError("Oops! Looks like you missed something.")
+      return
+    }
+
     try {
-      onSubmit(formData)
+      // Prepare the final form data
+      const finalFormData = {
+        ...formData,
+        recipient_type: recipientType,
+        specific_mps: selectedMps,
+        departments: selectedDepartments,
+        causes: [
+          ...selectedCauses.map(id => defaultCauses.find(cause => cause.id === id).label),
+          ...(formData.causes || [])
+        ],
+        templates: templates
+      }
+
+      console.log("Submitting form data:", finalFormData)
+      await onSubmit(finalFormData)
     } catch (error) {
       console.error('Error creating campaign:', error)
       setSubmitError(error.message || 'An error occurred while creating the campaign')
@@ -310,13 +366,16 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
                     onChange={handleChange}
                     required
                   />
+                  {validationErrors.campaign_name && (
+                    <p className="text-red-500 text-sm">{validationErrors.campaign_name}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="short_description">Short Description</Label>
                   <Textarea
                     id="short_description"
                     name="short_description"
-                    placeholder="Brief overview of the campaign (100 words max)."
+                    placeholder="Brief overview of the campaign (50 words max)."
                     value={formData.short_description}
                     onChange={handleChange}
                     className="min-h-[60px]"
@@ -328,6 +387,9 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
                     </p>
                     <Progress value={(shortDescriptionWordCount / 50) * 100} className="w-1/2" />
                   </div>
+                  {validationErrors.short_description && (
+                    <p className="text-red-500 text-sm">{validationErrors.short_description}</p>
+                  )}
                 </div>
               </div>
             )}
@@ -528,6 +590,9 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
                     </p>
                     <Progress value={(longDescriptionWordCount / 1500) * 100} className="w-1/2" />
                   </div>
+                  {validationErrors.long_description && (
+                    <p className="text-red-500 text-sm">{validationErrors.long_description}</p>
+                  )}
                 </div>
               </div>
             )}
@@ -635,7 +700,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             <Button 
               type="button" 
               onClick={handleSubmit} 
-              disabled={isSubmitting || shortDescriptionWordCount > 100 || longDescriptionWordCount > 1500}
+              disabled={isSubmitting}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Campaign Prompt'}
             </Button>
