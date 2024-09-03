@@ -1,0 +1,31 @@
+{
+  campaign_name: string,
+  short_description: string,
+  long_description: string,
+  recipient_type: 'all_mps' | 'specific_mps',
+  specific_mps: Array<{
+    id: string,
+    name: string,
+    constituency: string,
+    email: string
+  }>,
+  departments: Array<{
+    id: string,
+    department: string,
+    mp: string
+  }>,
+  causes: Array<string>,
+  docs: Array<{
+    name: string,
+    content: string
+  }>
+}
+
+1. campaign_name: The name of the campaign (string).
+2. short_description: A brief overview of the campaign (string, up to 50 words).
+3. long_description: Detailed information about the campaign (string, up to 1500 words).
+4. recipient_type: Either 'all_mps' or 'specific_mps', indicating whether the campaign targets all MPs or specific ones.
+5. specific_mps: An array of objects representing selected MPs (only if recipient_type is 'specific_mps').
+6. departments: An array of objects representing selected government departments.
+7. causes: An array of strings representing the selected and custom causes.
+8. docs: An array of objects representing the uploaded or pasted letter templates.
