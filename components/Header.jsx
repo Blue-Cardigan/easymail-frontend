@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { useRouter } from 'next/navigation'  // Change this import
+import { useRouter } from 'next/navigation'  // TODO: Change this import
 import { Button } from "@/components/ui/button"
 import Image from 'next/image'
 import Link from 'next/link'
