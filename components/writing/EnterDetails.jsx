@@ -11,26 +11,19 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import mpsData from '@/lib/mps.json'
 
 const tones = [
-  "Urgent",
   "Concerned",
   "Hopeful",
   "Determined",
   "Respectful",
   "Passionate",
   "Analytical",
-  "Empathetic",
-  "Persuasive",
-  "Collaborative",
   "Assertive",
   "Informative",
   "Optimistic",
   "Critical",
   "Pragmatic",
-  "Inspirational",
   "Diplomatic",
-  "Authoritative",
   "Inquisitive",
-  "Supportive"
 ]
 
 export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitting }) {
@@ -60,6 +53,7 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
     "National Interest": "I believe this is crucial for the future of our country.",
     "Global Significance": "This issue has worldwide implications that concern me.",
     "Moral Imperative": "I feel a strong ethical obligation to support this cause.",
+    "Economic Implications": "I'm concerned about the economic effects this issue may have.",
   }
 
   const customCauses = campaignData.causes ? 
