@@ -229,7 +229,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
       const filteredSuggestions = mpConstituencies.filter(
         (mp) => mp.searchString.toLowerCase().includes(value.toLowerCase())
       )
-      setMpSuggestions(filteredSuggestions)
+      setMpSuggestions(filteredSuggestions.slice(0, 10)) // Limit to 10 suggestions
     } else {
       setMpSuggestions([])
     }
@@ -355,20 +355,27 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
                   
                   {recipientType === 'specific_mps' && (
                     <div className="ml-6 space-y-2">
-                      <Select
-                        onValueChange={(value) => addMp(JSON.parse(value))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select an MP" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mpConstituencies.map((mp) => (
-                            <SelectItem key={mp.id} value={JSON.stringify(mp)}>
-                              {mp.searchString}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          placeholder="Search for an MP or constituency"
+                          value={mpSearch}
+                          onChange={handleMpSearch}
+                        />
+                        {mpSuggestions.length > 0 && (
+                          <ul className="absolute z-10 w-full bg-white border border-gray-300 mt-1 max-h-60 overflow-auto rounded-md shadow-lg">
+                            {mpSuggestions.map((mp) => (
+                              <li
+                                key={mp.id}
+                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                onClick={() => addMp(mp)}
+                              >
+                                {mp.searchString}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
                       {selectedMps.length > 0 && (
                         <div className="mt-2">
                           <div className="flex justify-between items-center">
