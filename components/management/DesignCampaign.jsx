@@ -300,6 +300,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             {currentStep === 1 && (
               <div className="space-y-4">
                 <h3 className="text-xl font-bold flex items-center"><FileSignature className="mr-2" /> Campaign Details</h3>
+                <h4 className="text-md font-semibold">Step 1: Basic Information</h4>
                 <div className="space-y-2">
                   <Label htmlFor="campaign_name">Campaign Name</Label>
                   <Input
@@ -334,6 +335,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             {currentStep === 2 && (
               <div className="space-y-4">
                 <h3 className="text-xl font-bold flex items-center"><Users className="mr-2" /> Letter Recipients</h3>
+                <h4 className="text-md font-semibold">Step 2: Select the targets of your campaign</h4>
                 <div className="space-y-4">
                   <h4 className="text-md font-semibold">Primary Recipients</h4>
                   <RadioGroup
@@ -457,7 +459,9 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
 
             {currentStep === 3 && (
               <div className="space-y-4">
-                <h3 className="text-xl font-bold flex items-center"><ListChecks className="mr-2" /> Causes</h3>
+                <h3 className="text-xl font-bold flex items-center"><ListChecks className="mr-2" /> Motivations</h3>
+                <h4 className="text-md font-semibold">Step 3: Why do supporters care about your campaign?</h4>
+                <h5 className="text-sm italic">You may want to match these options with your supporter segments.</h5>
                 <div className="flex items-center space-x-2 mb-4">
                   <Checkbox
                     id="select-all-causes"
@@ -499,6 +503,7 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             {currentStep === 4 && (
               <div className="space-y-4">
                 <h3 className="text-xl font-bold flex items-center"><FileText className="mr-2" /> Detailed Description</h3>
+                <h4 className="text-md font-semibold">Step 4: Provide In-Depth Context</h4>
                 <div className="space-y-2">
                   <Label htmlFor="long_description">Campaign Details</Label>
                   <Textarea
@@ -523,6 +528,8 @@ export default function CampaignPromptDesigner({ campaignId, initialData, onSubm
             {currentStep === 5 && (
               <div className="space-y-4">
                 <h3 className="text-xl font-bold flex items-center"><Upload className="mr-2" /> Letter Templates</h3>
+                <h4 className="text-md font-semibold">Step 5: Add Example Letters</h4>
+                <h5 className="text-sm italic">AI loves examples.</h5>
                 <Label>Upload or paste up to 3 templates</Label>
                 
                 {templates.map((template, index) => (
