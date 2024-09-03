@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import Header from '@/components/Header'  // Add this import
 
 const CACHE_KEY = 'campaignFormData'
 
@@ -46,23 +47,36 @@ export default function CampaignDesignPage({ params }) {
     localStorage.setItem(CACHE_KEY, JSON.stringify(formData))
   }, [formData])
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-  }
-
   const handleFormChange = (updatedData) => {
     setFormData(updatedData)
   }
 
   const validateFormData = (data) => {
+    const errors = []
     const requiredFields = ['campaign_name', 'short_description', 'long_description']
+    
     for (let field of requiredFields) {
       if (!data[field] || data[field].trim() === '') {
-        throw new Error(`${field} is required`)
+        errors.push(`${field.replace('_', ' ')} is required`)
       }
     }
-    // Add any other specific validations here
+
+    if (data.short_description && data.short_description.split(/\s+/).length > 50) {
+      errors.push("Short description should not exceed 50 words")
+    }
+
+    if (data.long_description && data.long_description.split(/\s+/).length > 1500) {
+      errors.push("Detailed description should not exceed 1500 words")
+    }
+
+    const totalCauses = (data.causes || []).length
+    if (totalCauses < 2) {
+      errors.push("Please select at least two causes")
+    }
+
+    if (errors.length > 0) {
+      throw new Error(errors.join(". "))
+    }
   }
 
   const handleSubmit = async (submittedFormData) => {
@@ -129,18 +143,18 @@ export default function CampaignDesignPage({ params }) {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-end mb-4">
-        <Button onClick={handleLogout}>Logout</Button>
+    <>
+      <Header />  {/* Add the Header component here */}
+      <div className="container mx-auto p-4 pt-20">
+        {error && <div className="text-red-500 mb-4">{error}</div>}
+        <DesignCampaign 
+          campaignID={params.id} 
+          initialData={formData} 
+          onSubmit={handleSubmit}
+          onChange={handleFormChange}
+          isSubmitting={isSubmitting}
+        />
       </div>
-      {error && <div className="text-red-500 mb-4">{error}</div>}
-      <DesignCampaign 
-        campaignID={params.id} 
-        initialData={formData} 
-        onSubmit={handleSubmit}
-        onChange={handleFormChange}
-        isSubmitting={isSubmitting}
-      />
-    </div>
+    </>
   )
 }

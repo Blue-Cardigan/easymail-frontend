@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useRouter } from 'next/navigation'  // Change this import
 import { Button } from "@/components/ui/button"
 import Image from 'next/image'
 import Link from 'next/link'
@@ -13,6 +14,7 @@ export default function Header() {
   const headerRef = useRef(null)
   const [headerHeight, setHeaderHeight] = useState(0)
   const supabase = createClientComponentClient()
+  const router = useRouter()  // This is now from next/navigation
 
   useEffect(() => {
     const checkUser = async () => {
@@ -42,6 +44,9 @@ export default function Header() {
     await supabase.auth.signOut()
     setUser(null)
     setIsMenuOpen(false)
+    
+    // Redirect to homepage
+    router.push('/')
   }
 
   const toggleMenu = () => {
