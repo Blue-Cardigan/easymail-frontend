@@ -128,12 +128,28 @@ export default function LetterGeneratorPage({ params }) {
     setIsSubmitting(false)
   }
 
-  if (notFound) {
-    return <CampaignNotFound />
-  }
+  const handleGoogleLogin = async () => {
+    // Store the current state in localStorage
+    localStorage.setItem('pendingLetter', JSON.stringify({
+      campaignId: params.id,
+      mpEmail,
+      isGenerating,
+      generatedResponse,
+      generatedSubject
+    }))
 
-  if (!campaignData && !error) {
-    return <div>Loading...</div>
+    // Redirect to the Google login page
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(window.location.pathname)}`
+      }
+    })
+
+    if (error) {
+      console.error('Error during Google login:', error)
+      setError('Failed to initiate Google login. Please try again.')
+    }
   }
 
   return (
@@ -150,6 +166,7 @@ export default function LetterGeneratorPage({ params }) {
             error={error}
             onRetry={() => generateLetter(formData)}
             user={user}
+            onGoogleLogin={handleGoogleLogin}
           />
         ) : (
           <ConstituentForm 

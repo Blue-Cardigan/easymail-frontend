@@ -20,6 +20,14 @@ const nextConfig = {
 
     return config
   },
+  async rewrites() {
+    return [
+      {
+        source: '/auth/v1/:path*',
+        destination: 'https://smjqzxxrfbybbwosytpx.supabase.co/auth/v1/:path*',
+      },
+    ]
+  }
 }
 
 module.exports = nextConfig
