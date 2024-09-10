@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { GoogleSignInButton } from '@/components/GoogleSignInButton'
 import Image from 'next/image'
+import { Input } from "@/components/ui/input"
 
 const loadingMessages = [
   "Generating your letter...",
@@ -38,16 +39,10 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   const [isLoggedIn, setIsLoggedIn] = useState(!!initialUser)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [emailSentMessage, setEmailSentMessage] = useState(null)
-  const [hasEdited, setHasEdited] = useState(false)
   const [hasBrackets, setHasBrackets] = useState(false)
   const [user, setUser] = useState(initialUser)
+  const [userName, setUserName] = useState('')
   const supabase = createClientComponentClient()
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('hasEdited', JSON.stringify(hasEdited));
-    }
-  }, [hasEdited, user]);
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -56,15 +51,9 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
       setIsLoggedIn(!!user)
 
       if (user) {
-        const savedHasEdited = localStorage.getItem('hasEdited');
-        if (savedHasEdited !== null) {
-          setHasEdited(JSON.parse(savedHasEdited));
-        }
-
         // Check for pending letter data (for users who just logged in)
         const pendingLetter = JSON.parse(localStorage.getItem('pendingLetter'))
         if (pendingLetter && pendingLetter.campaignId === campaignId) {
-          setHasEdited(pendingLetter.hasEdited || false)
           setResponse(pendingLetter.generatedResponse || initialResponse)
           setEditableResponse(pendingLetter.generatedResponse || initialResponse)
           setSubject(pendingLetter.generatedSubject || initialSubject)
@@ -73,9 +62,6 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
           // Clear the pendingLetter from localStorage
           localStorage.removeItem('pendingLetter')
         }
-      } else {
-        // If user is not logged in, clear the hasEdited state in localStorage
-        localStorage.removeItem('hasEdited');
       }
     }
     checkLoginStatus()
@@ -204,11 +190,9 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
     if (isEditing) {
       if (editableResponse !== response) {
         setResponse(editableResponse)
-        setHasEdited(true)
       }
       if (editableSubject !== subject) {
         setSubject(editableSubject)
-        setHasEdited(true)
       }
       setHasBrackets(checkForBrackets(editableResponse) || checkForBrackets(editableSubject))
     }
@@ -218,25 +202,18 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   const handleEditableResponseChange = (e) => {
     const newText = e.target.value
     setEditableResponse(newText)
-    if (!hasEdited && newText !== response) {
-      setHasEdited(true)
-    }
     setHasBrackets(checkForBrackets(newText) || checkForBrackets(editableSubject))
   }
 
   const handleEditableSubjectChange = (e) => {
     const newSubject = e.target.value
     setEditableSubject(newSubject)
-    if (!hasEdited && newSubject !== subject) {
-      setHasEdited(true)
-    }
     setHasBrackets(checkForBrackets(editableResponse) || checkForBrackets(newSubject))
   }
 
   const handleResetToOriginal = () => {
     setEditableResponse(originalResponse)
     setEditableSubject(initialSubject)
-    setHasEdited(false)
     setHasBrackets(checkForBrackets(originalResponse) || checkForBrackets(initialSubject))
   }
 
@@ -375,10 +352,9 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
             </div>
           </div>
           
-          {response && !error && hasEdited && (
+          {response && !error && (
             <div>
               <p className="font-semibold mb-2">
-                          
               {mpEmail && !error && (
                 <p>Send the letter to your MP: <strong>{mpEmail}</strong></p>
               )}
@@ -439,14 +415,11 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
             <div className="p-4 bg-yellow-100 rounded-md">
               <p className="font-semibold mb-2">Important:</p>
               <ul className="list-disc list-inside">
-                {!hasEdited && (
-                  <li className="text-red-600">You must edit the letter before sending it.</li>
-                )}
                 {hasBrackets && (
                   <li className="text-red-600">Add your name at the bottom of the letter where it says "[Your Name]".</li>
                 )}
                 {!hasBrackets && (
-                  <li>Add your name at the bottom of the letter.</li>
+                  <li>Add your name at the bottom of the letter if it's not already there.</li>
                 )}
                 <li>Review the letter and make any personal adjustments if needed.</li>
               </ul>
