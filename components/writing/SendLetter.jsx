@@ -20,7 +20,7 @@ const loadingMessages = [
   "We're sorry, something went wrong. Try reloading the page then try again."
 ]
 
-export default function ResponsePage({ campaignId, campaignName, initialResponse, initialSubject, mpEmail, isGenerating: initialIsGenerating, error: initialError, onRetry, user: initialUser }) {
+export default function ResponsePage({ campaignId, campaignName, initialResponse, initialSubject, mpEmail, isGenerating: initialIsGenerating, error: initialError, onRetry, user: initialUser, onGoogleLogin }) {
   const [response, setResponse] = useState(initialResponse)
   const [editableResponse, setEditableResponse] = useState(initialResponse)
   const [subject, setSubject] = useState(initialSubject)
@@ -88,30 +88,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   }
 
   const handleGoogleLogin = async () => {
-    try {
-      // Store necessary information in localStorage
-      localStorage.setItem('pendingLetter', JSON.stringify({
-        campaignId,
-        campaignName,
-        mpEmail,
-        isGenerating: isGenerating,
-        generatedResponse: response,
-        generatedSubject: subject,
-        hasEdited: hasEdited,
-        formData: JSON.parse(localStorage.getItem('formData'))
-      }))
-      console.log('redirectTo:', `http://localhost:3000/auth/callback?returnTo=/${campaignId}`)
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/gmail.send',
-          redirectTo: `/auth/callback?returnTo=/${campaignId}`
-        }
-      })
-      if (error) throw error
-    } catch (error) {
-      setError('Failed to initiate Google login. Please try again.')
-    }
+    await onGoogleLogin()
   }
 
   const handleSendEmail = async () => {
