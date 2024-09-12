@@ -72,7 +72,20 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   }
 
   const handleGoogleLogin = async () => {
-    await onGoogleLogin()
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        scopes: 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email',
+        redirectTo: `${window.location.origin}/auth/v1/callback`,
+        access_type: 'offline',
+        prompt: 'consent'
+      }
+    })
+    if (error) {
+      console.error('Error signing in with Google:', error)
+    } else {
+      await onGoogleLogin(data.url)
+    }
   }
 
   const handleSendEmail = async () => {

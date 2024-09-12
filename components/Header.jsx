@@ -59,9 +59,9 @@ export default function Header() {
         ref={headerRef}
         className="fixed top-0 left-0 right-0 bg-white shadow-md p-4 z-50"
       >
-        <div className="container mx-auto flex justify-between items-center">
+        <div className="container mx-auto pl-0 flex justify-between items-center">
           <Link href="/" className="flex-shrink-0">
-            <Image src="/logo.png" alt="Easymail Logo" width={150} height={50} />
+            <Image src="/logos/text.svg" alt="Easymail Logo" width={150} height={50} />
           </Link>
           
           {/* Hamburger icon for mobile */}
@@ -94,10 +94,10 @@ export default function Header() {
         {/* Mobile menu */}
         <div
           className={cn(
-            "md:hidden mt-4 flex flex-col space-y-2 transition-all duration-300 ease-in-out overflow-hidden",
+            "md:hidden flex flex-col space-y-2 transition-all duration-300 ease-in-out overflow-hidden",
             {
               "max-h-0": !isMenuOpen,
-              "max-h-[200px]": isMenuOpen,
+              "max-h-[200px] mt-4": isMenuOpen,
             }
           )}
         >

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import ExistingCampaignModal from '@/components/ExistingCampaignModal'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -12,7 +11,6 @@ import Footer from '@/components/Footer'
 import "react-responsive-carousel/lib/styles/carousel.min.css"
 
 export default function Home() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
   const [user, setUser] = useState(null)
   const supabase = createClientComponentClient()
 
@@ -117,8 +115,6 @@ export default function Home() {
       </main>
 
       <Footer />
-
-      {/* {isModalOpen && <ExistingCampaignModal onClose={() => setIsModalOpen(false)} />} */}
     </div>
   )
 }
