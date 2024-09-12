@@ -38,16 +38,9 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   const [isLoggedIn, setIsLoggedIn] = useState(!!initialUser)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [emailSentMessage, setEmailSentMessage] = useState(null)
-  const [hasEdited, setHasEdited] = useState(false)
   const [hasBrackets, setHasBrackets] = useState(false)
   const [user, setUser] = useState(initialUser)
   const supabase = createClientComponentClient()
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('hasEdited', JSON.stringify(hasEdited));
-    }
-  }, [hasEdited, user]);
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -56,15 +49,9 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
       setIsLoggedIn(!!user)
 
       if (user) {
-        const savedHasEdited = localStorage.getItem('hasEdited');
-        if (savedHasEdited !== null) {
-          setHasEdited(JSON.parse(savedHasEdited));
-        }
-
         // Check for pending letter data (for users who just logged in)
         const pendingLetter = JSON.parse(localStorage.getItem('pendingLetter'))
         if (pendingLetter && pendingLetter.campaignId === campaignId) {
-          setHasEdited(pendingLetter.hasEdited || false)
           setResponse(pendingLetter.generatedResponse || initialResponse)
           setEditableResponse(pendingLetter.generatedResponse || initialResponse)
           setSubject(pendingLetter.generatedSubject || initialSubject)
@@ -73,9 +60,6 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
           // Clear the pendingLetter from localStorage
           localStorage.removeItem('pendingLetter')
         }
-      } else {
-        // If user is not logged in, clear the hasEdited state in localStorage
-        localStorage.removeItem('hasEdited');
       }
     }
     checkLoginStatus()
@@ -204,11 +188,9 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
     if (isEditing) {
       if (editableResponse !== response) {
         setResponse(editableResponse)
-        setHasEdited(true)
       }
       if (editableSubject !== subject) {
         setSubject(editableSubject)
-        setHasEdited(true)
       }
       setHasBrackets(checkForBrackets(editableResponse) || checkForBrackets(editableSubject))
     }
@@ -218,25 +200,18 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   const handleEditableResponseChange = (e) => {
     const newText = e.target.value
     setEditableResponse(newText)
-    if (!hasEdited && newText !== response) {
-      setHasEdited(true)
-    }
     setHasBrackets(checkForBrackets(newText) || checkForBrackets(editableSubject))
   }
 
   const handleEditableSubjectChange = (e) => {
     const newSubject = e.target.value
     setEditableSubject(newSubject)
-    if (!hasEdited && newSubject !== subject) {
-      setHasEdited(true)
-    }
     setHasBrackets(checkForBrackets(editableResponse) || checkForBrackets(newSubject))
   }
 
   const handleResetToOriginal = () => {
     setEditableResponse(originalResponse)
     setEditableSubject(initialSubject)
-    setHasEdited(false)
     setHasBrackets(checkForBrackets(originalResponse) || checkForBrackets(initialSubject))
   }
 
@@ -273,10 +248,10 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
         <div className="relative">
           <div 
             ref={contentRef}
-            className={`cursor-pointer ${isEditing ? 'hidden' : ''}`}
+            className={`cursor-pointer font-serif text-lg leading-relaxed ${isEditing ? 'hidden' : ''}`}
             onClick={handleCopyText}
           >
-            <h3 className="font-bold mb-2">{subject}</h3>
+            <h3 className="font-bold mb-2 font-sans">{subject}</h3>
             <div>{response}</div>
           </div>
           {isEditing && (
@@ -284,13 +259,13 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
               <input
                 value={editableSubject}
                 onChange={handleEditableSubjectChange}
-                className="w-full mb-2 p-2 border rounded"
+                className="w-full mb-2 p-2 border rounded font-sans text-lg"
                 placeholder="Subject"
               />
               <Textarea
                 value={editableResponse}
                 onChange={handleEditableResponseChange}
-                className={`min-h-[200px] w-full mb-2 ${hasBrackets ? 'border-red-500' : ''}`}
+                className={`min-h-[200px] w-full mb-2 font-serif text-lg leading-relaxed ${hasBrackets ? 'border-red-500' : ''}`}
                 style={{ height: contentHeight }}
               />
             </>
@@ -369,19 +344,18 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
               <div className="flex items-center space-x-2">
                 <Switch id="edit-mode" checked={isEditing} onCheckedChange={handleEditToggle} />
                 <Label htmlFor="edit-mode" className="text-sm">
-                  {isEditing ? 'Save Changes' : 'Click to edit'}
+                  {isEditing ? 'Save Changes' : 'Edit Letter'}
                 </Label>
               </div>
             </div>
           </div>
           
-          {response && !error && hasEdited && (
+          {response && !error && (
             <div>
               <p className="font-semibold mb-2">
-                          
-              {mpEmail && !error && (
-                <p>Send the letter to your MP: <strong>{mpEmail}</strong></p>
-              )}
+                {mpEmail && !error && (
+                  <p>Send the letter to your MP: <strong>{mpEmail}</strong></p>
+                )}
               </p>
               {isLoggedIn ? (
                 <Button 
@@ -411,7 +385,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
                 >
                   Send with{' '}
                   <Image
-                    src="/signin-assets/Web (mobile + desktop)/svg/dark/web_dark_rd_na.svg"
+                    src="/googlebutton/circle.svg"
                     alt="Google logo"
                     width={20}
                     height={20}
@@ -439,9 +413,6 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
             <div className="p-4 bg-yellow-100 rounded-md">
               <p className="font-semibold mb-2">Important:</p>
               <ul className="list-disc list-inside">
-                {!hasEdited && (
-                  <li className="text-red-600">You must edit the letter before sending it.</li>
-                )}
                 {hasBrackets && (
                   <li className="text-red-600">Add your name at the bottom of the letter where it says "[Your Name]".</li>
                 )}
