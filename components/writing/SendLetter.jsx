@@ -411,7 +411,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
                 >
                   Send with{' '}
                   <Image
-                    src="/signin-assets/Web (mobile + desktop)/svg/dark/web_dark_rd_na.svg"
+                    src="/googlebutton/circle.svg"
                     alt="Google logo"
                     width={20}
                     height={20}
