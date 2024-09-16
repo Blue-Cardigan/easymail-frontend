@@ -32,7 +32,7 @@ export default function ClientLoginPage() {
           setError('Not authorized. Please contact support if you believe this is an error.')
         } else {
           // If admin, redirect to admin/new
-          router.push('/admin/new')
+          router.push('/admin/dashboard')
         }
       }
     })

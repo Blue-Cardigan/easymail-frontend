@@ -14,7 +14,7 @@ export default function Header() {
   const headerRef = useRef(null)
   const [headerHeight, setHeaderHeight] = useState(0)
   const supabase = createClientComponentClient()
-  const router = useRouter()  // This is now from next/navigation
+  const router = useRouter() 
 
   useEffect(() => {
     const checkUser = async () => {
@@ -76,8 +76,8 @@ export default function Header() {
             {user ? (
               <>
                 <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
-                <Link href="/admin/new">
-                  <Button>Create Campaign</Button>
+                <Link href="/admin/dashboard">
+                  <Button>Dashboard</Button>
                 </Link>
               </>
             ) : (
