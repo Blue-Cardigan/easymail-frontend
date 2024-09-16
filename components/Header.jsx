@@ -61,7 +61,7 @@ export default function Header() {
       >
         <div className="container mx-auto pl-0 flex justify-between items-center">
           <Link href="/" className="flex-shrink-0">
-            <Image src="/logos/text.svg" alt="Easymail Logo" width={150} height={50} />
+            <Image src="/logos/4.png" alt="Easymail Logo" width={200} height={50} />
           </Link>
           
           {/* Hamburger icon for mobile */}
