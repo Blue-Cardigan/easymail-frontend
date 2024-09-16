@@ -20,8 +20,8 @@ async function getCampaignDetails(id) {
 
   if (!res.ok) {
     const errorText = await res.text()
-    console.error(`Failed to fetch campaign details: ${res.status} ${errorText}`)
-    throw new Error(`Failed to fetch campaign details: ${res.status} ${errorText}`)
+    console.error(`Failed to fetch campaign details: ${res.status} ${errorText}`);
+    throw new Error(`Failed to fetch campaign details :(`);
   }
 
   return res.json()

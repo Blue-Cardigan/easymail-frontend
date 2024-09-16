@@ -63,12 +63,14 @@ export default function Home() {
               className="rounded-lg shadow-xl overflow-hidden"
             >
               {carouselImages.map((image, index) => (
-                <div key={index} className="h-96">
+                <div key={index} className="h-96 relative">
                   <Image 
                     src={image}
                     alt={`AI-powered letter writing ${index + 1}`}
-                    layout="fill"
-                    objectFit="cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    priority={index === 0}
                   />
                 </div>
               ))}

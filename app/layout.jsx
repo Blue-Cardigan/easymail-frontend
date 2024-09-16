@@ -3,7 +3,7 @@
 import { Inter } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import Head from 'next/head'
-import '@/app/globals.css'
+import './globals.css'
 
 const fontHeading = Inter({
   subsets: ['latin'],
