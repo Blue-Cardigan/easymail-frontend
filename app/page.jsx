@@ -63,12 +63,12 @@ export default function Home() {
               className="rounded-lg shadow-xl overflow-hidden"
             >
               {carouselImages.map((image, index) => (
-                <div key={index} className="h-96">
+                <div key={index} className="h-96 relative">
                   <Image 
                     src={image}
                     alt={`AI-powered letter writing ${index + 1}`}
-                    layout="fill"
-                    objectFit="cover"
+                    fill
+                    style={{ objectFit: 'cover' }}
                   />
                 </div>
               ))}
