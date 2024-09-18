@@ -8,8 +8,10 @@ export default function ShareCampaignPage() {
   const url = `easymail.civita.co.uk/${params.url}`
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-      <ShareCampaign shareableUrl={url} />
-    </div>
+    <>
+[]';/..'      <div className="container mx-auto p-4 min-h-screen bg-background flex flex-col items-center justify-center">
+        <ShareCampaign shareableUrl={url} />
+      </div>
+    </>
   )
 }

@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-
+// random vomment for testing
 export default function Footer() {
   return (
     <footer className="bg-gray-100 py-8">

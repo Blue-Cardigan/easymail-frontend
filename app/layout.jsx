@@ -3,7 +3,7 @@
 import { Inter } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import Head from 'next/head'
-import '@/app/globals.css'
+import './globals.css'
 
 const fontHeading = Inter({
   subsets: ['latin'],
@@ -28,14 +28,14 @@ export default function Layout({ children }) {
     <html lang="en">
       <Head>
         <title>{metadata.title}</title>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/favico.svg" />
-        <link rel="shortcut icon" href="/favico.svg" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-        <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
-        <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png" />
+        <link rel="icon" href="/logos/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/logos/icon.svg" />
+        <link rel="shortcut icon" href="/logos/icon.svg" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/logos/icon.svg" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/logos/icon.svg" />
+        <link rel="icon" type="image/png" sizes="48x48" href="/logos/icon.svg" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/logos/icon.svg" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/logos/icon.svg" />
       </Head>
       <body 
         className={cn(

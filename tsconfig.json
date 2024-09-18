@@ -23,7 +23,8 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./src/*"],
+      "@app": ["./app/*"]
     }
   },
   "include": [
@@ -31,7 +32,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "src/components/ui/chart-card.jsx", "src/components/ui/scroll-area.jsx", "src/components/dashboard/sidebar.jsx", "src/components/dashboard/charts.jsx", "src/components/dashboard/settings.jsx"  ],
   "exclude": [
     "node_modules"
   ]

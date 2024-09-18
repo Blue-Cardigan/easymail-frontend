@@ -8,7 +8,6 @@ export async function POST(req) {
   const { to, subject, body } = await req.json()
 
   try {
-    // Get the user's session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     if (sessionError) throw sessionError
 
@@ -21,9 +20,15 @@ export async function POST(req) {
       .from('oauth_tokens')
       .select('access_token, refresh_token, expires_at')
       .eq('user_id', session.user.id)
-      .maybeSingle()
+      .single()
 
     if (tokensError) throw tokensError
+    if (!tokens || !tokens.refresh_token) {
+      console.error('No tokens or refresh token found for user:', session.user.id)
+      return NextResponse.json({ error: 'OAuth tokens not found' }, { status: 400 })
+    }
+
+    console.log('Tokens retrieved:', tokens)
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
@@ -31,26 +36,25 @@ export async function POST(req) {
       `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
     )
 
-    // Set credentials and check if token refresh is needed
     oauth2Client.setCredentials({
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       expiry_date: new Date(tokens.expires_at).getTime(),
     })
 
-    if (oauth2Client.isTokenExpiring()) {
-      const { credentials } = await oauth2Client.refreshAccessToken()
-      
-      // Update tokens in Supabase
-      await supabase
-        .from('oauth_tokens')
-        .update({
-          access_token: credentials.access_token,
-          refresh_token: credentials.refresh_token,
-          expires_at: new Date(credentials.expiry_date).toISOString(),
-        })
-        .eq('user_id', session.user.id)
-    }
+    // Force token refresh
+    const { credentials } = await oauth2Client.refreshAccessToken()
+    console.log('Tokens refreshed:', credentials)
+
+    // Update tokens in Supabase
+    await supabase
+      .from('oauth_tokens')
+      .update({
+        access_token: credentials.access_token,
+        refresh_token: credentials.refresh_token,
+        expires_at: new Date(credentials.expiry_date).toISOString(),
+      })
+      .eq('user_id', session.user.id)
 
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client })
 
@@ -68,12 +72,18 @@ export async function POST(req) {
       .replace(/\//g, '_')
       .replace(/=+$/, '')
 
-    await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: {
-        raw: encodedMessage,
-      },
-    })
+    try {
+      await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: {
+          raw: encodedMessage,
+        },
+      })
+      console.log('Email sent successfully')
+    } catch (gmailError) {
+      console.error('Error sending email via Gmail API:', gmailError)
+      throw gmailError
+    }
 
     return NextResponse.json({ message: 'Email sent successfully' })
   } catch (error) {

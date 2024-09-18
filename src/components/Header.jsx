@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useRouter } from 'next/navigation'  // Change this import
 import { Button } from "@/components/ui/button"
 import Image from 'next/image'
 import Link from 'next/link'
@@ -13,6 +14,7 @@ export default function Header() {
   const headerRef = useRef(null)
   const [headerHeight, setHeaderHeight] = useState(0)
   const supabase = createClientComponentClient()
+  const router = useRouter() 
 
   useEffect(() => {
     const checkUser = async () => {
@@ -42,6 +44,9 @@ export default function Header() {
     await supabase.auth.signOut()
     setUser(null)
     setIsMenuOpen(false)
+    
+    // Redirect to homepage
+    router.push('/')
   }
 
   const toggleMenu = () => {
@@ -54,9 +59,9 @@ export default function Header() {
         ref={headerRef}
         className="fixed top-0 left-0 right-0 bg-white shadow-md p-4 z-50"
       >
-        <div className="container mx-auto flex justify-between items-center">
+        <div className="container mx-auto pl-0 flex justify-between items-center">
           <Link href="/" className="flex-shrink-0">
-            <Image src="/logo.png" alt="Easymail Logo" width={150} height={50} />
+            <Image src="/logos/4.png" alt="Easymail Logo" width={200} height={50} />
           </Link>
           
           {/* Hamburger icon for mobile */}
@@ -71,8 +76,8 @@ export default function Header() {
             {user ? (
               <>
                 <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
-                <Link href="/admin/new">
-                  <Button>Create Campaign</Button>
+                <Link href="/admin/dashboard">
+                  <Button>Dashboard</Button>
                 </Link>
               </>
             ) : (
@@ -89,10 +94,10 @@ export default function Header() {
         {/* Mobile menu */}
         <div
           className={cn(
-            "md:hidden mt-4 flex flex-col space-y-2 transition-all duration-300 ease-in-out overflow-hidden",
+            "md:hidden flex flex-col space-y-2 transition-all duration-300 ease-in-out overflow-hidden",
             {
               "max-h-0": !isMenuOpen,
-              "max-h-[200px]": isMenuOpen,
+              "max-h-[200px] mt-4": isMenuOpen,
             }
           )}
         >
