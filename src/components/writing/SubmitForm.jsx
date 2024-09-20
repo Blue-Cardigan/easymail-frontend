@@ -11,19 +11,26 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import mpsData from '@/lib/mps.json'
 
 const tones = [
+  "Urgent",
   "Concerned",
   "Hopeful",
   "Determined",
   "Respectful",
   "Passionate",
   "Analytical",
+  "Empathetic",
+  "Persuasive",
+  "Collaborative",
   "Assertive",
   "Informative",
   "Optimistic",
   "Critical",
   "Pragmatic",
+  "Inspirational",
   "Diplomatic",
+  "Authoritative",
   "Inquisitive",
+  "Supportive"
 ]
 
 export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitting }) {
@@ -37,7 +44,6 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
   const [selectedCustomCauses, setSelectedCustomCauses] = useState([])
   const [errors, setErrors] = useState({})
   const [user, setUser] = useState(null)
-  const [name, setName] = useState('')
   const supabase = createClientComponentClient()
 
   const mpConstituencies = mpsData.map(mp => ({
@@ -54,16 +60,14 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
     "National Interest": "I believe this is crucial for the future of our country.",
     "Global Significance": "This issue has worldwide implications that concern me.",
     "Moral Imperative": "I feel a strong ethical obligation to support this cause.",
-    "Economic Implications": "I'm concerned about the economic effects this issue may have.",
   }
 
   const customCauses = campaignData.causes ? 
-  campaignData.causes
-    .filter(cause => cause && cause.title && cause.description) // Filter out undefined or invalid entries
-    .reduce((acc, cause) => {
+    campaignData.causes.reduce((acc, cause) => {
       acc[cause.title] = cause.description;
       return acc;
-    }, {}) : {};
+    }, {}) : {}
+
   const handleConstituencySearch = (e) => {
     const value = e.target.value
     setConstituencySearch(value)
@@ -107,7 +111,6 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
     if (selectedReasons.length === 0) newErrors.reason = 'Please select at least one reason'
     if (selectedTones.length === 0) newErrors.tones = 'Please select at least one tone'
     if (ageError) newErrors.age = ageError
-    if (!name.trim()) newErrors.name = 'Name is required'
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -125,8 +128,7 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
         ...selectedReasons.map(reason => `${reason} - ${reasons[reason]}`),
         ...selectedCustomCauses.map(cause => `${cause} - ${customCauses[cause]}`)
       ],
-      tones: selectedTones,
-      name: name.trim()
+      tones: selectedTones
     }
 
     onSubmit(formData)
@@ -138,8 +140,7 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
       (selectedConstituency || campaignData.target !== 'national') &&
       selectedReasons.length > 0 &&
       selectedTones.length > 0 &&
-      !ageError &&
-      name.trim() !== ''
+      !ageError
     )
   }
 
@@ -248,26 +249,11 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
             {errors.constituency && <span className="text-red-500 text-sm">{errors.constituency}</span>}
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="name">Your Name*</Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="To sign the letter"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value)
-                setErrors(prev => ({ ...prev, name: '' }))
-              }}
-              className={errors.name ? 'border-red-500' : ''}
-            />
-            {errors.name && <span className="text-red-500 text-sm">{errors.name}</span>}
-          </div>
-          <div className="grid gap-2">
             <Label htmlFor="age">Your Age (Optional)</Label>
             <Input 
               id="age" 
               type="number" 
-              placeholder="To write a letter more like you" 
+              placeholder="Enter your age (optional)" 
               value={age}
               onChange={handleAgeChange}
               onBlur={handleAgeBlur}

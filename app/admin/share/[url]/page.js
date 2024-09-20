@@ -9,7 +9,7 @@ export default function ShareCampaignPage() {
 
   return (
     <>
-[]';/..'      <div className="container mx-auto p-4 min-h-screen bg-background flex flex-col items-center justify-center">
+      <div className="container mx-auto p-4 min-h-screen bg-background flex flex-col items-center justify-center">
         <ShareCampaign shareableUrl={url} />
       </div>
     </>
