@@ -57,11 +57,12 @@ export function ConstituentForm({ campaignId, campaignData, onSubmit, isSubmitti
   }
 
   const customCauses = campaignData.causes ? 
-    campaignData.causes.reduce((acc, cause) => {
+  campaignData.causes
+    .filter(cause => cause && cause.title && cause.description) // Filter out undefined or invalid entries
+    .reduce((acc, cause) => {
       acc[cause.title] = cause.description;
       return acc;
-    }, {}) : {}
-
+    }, {}) : {};
   const handleConstituencySearch = (e) => {
     const value = e.target.value
     setConstituencySearch(value)
