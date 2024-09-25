@@ -1,21 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-const apiUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const apiKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!apiUrl || !apiKey) {
+if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-export const supabase = createClient(apiUrl, apiKey)
-//Log when the supabase client is created successfully
-if (supabase) {
-  console.log('Supabase client created successfully')
-}
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Helper function to handle Supabase errors
 export const handleSupabaseError = (error) => {
   console.error('Supabase error:', error)
-  // You can add more error handling logic here
   throw error
 }

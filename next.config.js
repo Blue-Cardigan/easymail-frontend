@@ -9,7 +9,6 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     config.resolve.alias.canvas = false
 
-    // Add this condition to handle client-side bundling
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -25,6 +24,15 @@ const nextConfig = {
       {
         source: '/auth/v1/:path*',
         destination: 'https://smjqzxxrfbybbwosytpx.supabase.co/auth/v1/:path*',
+      },
+    ]
+  },
+  async redirects() {
+    return [
+      {
+        source: '/auth/callback',
+        destination: '/api/auth/callback',
+        permanent: true,
       },
     ]
   }

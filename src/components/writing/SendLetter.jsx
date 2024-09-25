@@ -76,7 +76,10 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
       provider: 'google',
       options: {
         scopes: 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email',
-        redirectTo: `${window.location.origin}/auth/v1/callback`,
+        redirectTo: `${process.env.NEXT_PUBLIC_LOCAL_SITE_URL}/api/auth/callback`,
+        queryParams: {
+          redirectTo: campaignId, 
+        },
         access_type: 'offline',
         prompt: 'consent'
       }
@@ -87,7 +90,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
       await onGoogleLogin(data.url)
     }
   }
-
+  
   const handleSendEmail = async () => {
     setIsSendingEmail(true)
     setError(null)
