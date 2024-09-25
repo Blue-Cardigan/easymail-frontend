@@ -13,3 +13,5 @@ export const handleSupabaseError = (error) => {
   console.error('Supabase error:', error)
   throw error
 }
+
+//just making this the main branch
