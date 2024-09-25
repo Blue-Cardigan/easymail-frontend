@@ -78,7 +78,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
         scopes: 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email',
         redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
         queryParams: {
-          redirectTo: campaignId, 
+          redirectTo: `/${campaignId}`, 
         },
         access_type: 'offline',
         prompt: 'consent'
