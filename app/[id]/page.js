@@ -37,6 +37,7 @@ export default function LetterGeneratorPage({ params }) {
   const [mpEmail, setMpEmail] = useState(null)
   const [formData, setFormData] = useState(null)
   const [notFound, setNotFound] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const [user, setUser] = useState(null)
@@ -83,6 +84,7 @@ export default function LetterGeneratorPage({ params }) {
   const generateLetter = useCallback(async (formData) => {
     if (!formData) return
 
+    setIsLoading(true)
     setIsGenerating(true)
     setError(null)
     try {
@@ -111,6 +113,7 @@ export default function LetterGeneratorPage({ params }) {
       setError(error.message || 'Failed to generate letter. Please try again.')
     } finally {
       setIsGenerating(false)
+      setIsLoading(false)
     }
   }, [params.id])
 
@@ -158,6 +161,7 @@ export default function LetterGeneratorPage({ params }) {
             initialSubject={generatedSubject} 
             mpEmail={mpEmail} 
             isGenerating={isGenerating}
+            isLoading={isLoading}
             error={error}
             onRetry={() => generateLetter(formData)}
             user={user}

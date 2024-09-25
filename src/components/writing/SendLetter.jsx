@@ -20,7 +20,19 @@ const loadingMessages = [
   "We're sorry, something went wrong. Try reloading the page then try again."
 ]
 
-export default function ResponsePage({ campaignId, campaignName, initialResponse, initialSubject, mpEmail, isGenerating: initialIsGenerating, error: initialError, onRetry, user: initialUser, onGoogleLogin }) {
+export default function ResponsePage({ 
+  campaignId, 
+  campaignName, 
+  initialResponse, 
+  initialSubject, 
+  mpEmail, 
+  isGenerating: initialIsGenerating, 
+  isLoading: initialIsLoading,
+  error: initialError, 
+  onRetry, 
+  user: initialUser, 
+  onGoogleLogin 
+}) {
   const [response, setResponse] = useState(initialResponse)
   const [editableResponse, setEditableResponse] = useState(initialResponse)
   const [subject, setSubject] = useState(initialSubject)
@@ -40,6 +52,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   const [emailSentMessage, setEmailSentMessage] = useState(null)
   const [hasBrackets, setHasBrackets] = useState(false)
   const [user, setUser] = useState(initialUser)
+  const [isLoading, setIsLoading] = useState(initialIsLoading)
   const supabase = createClientComponentClient()
 
   useEffect(() => {
@@ -151,6 +164,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
 
   useEffect(() => {
     setIsGenerating(initialIsGenerating)
+    setIsLoading(initialIsLoading)
     setError(initialError)
     if (!initialError && initialResponse) {
       setResponse(initialResponse)
@@ -162,7 +176,9 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
       setRetryCount(0)
       setLoadingMessageIndex(0)
     }
-  }, [initialResponse, initialSubject, initialError, initialIsGenerating])
+  }, [initialResponse, initialSubject, initialError, initialIsGenerating, initialIsLoading])
+
+
 
   useEffect(() => {
     if (isGenerating) {
@@ -236,7 +252,7 @@ export default function ResponsePage({ campaignId, campaignName, initialResponse
   }, [response, subject]);
 
   const renderContent = () => {
-    if (isGenerating) {
+    if (isLoading || isGenerating) {
       return (
         <div className="flex flex-col items-center justify-center">
           <div className="w-10 h-10 border-t-2 border-b-2 border-primary rounded-full animate-spin mb-4"></div>
