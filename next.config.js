@@ -28,13 +28,7 @@ const nextConfig = {
     ]
   },
   async redirects() {
-    return [
-      // {
-      //   source: '/auth/callback',
-      //   destination: '/api/auth/callback',
-      //   permanent: true,
-      // },
-    ]
+    return []
   }
 }
 

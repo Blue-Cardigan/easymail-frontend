@@ -65,23 +65,18 @@ export default function LetterGeneratorPage({ params }) {
     }
     fetchCampaignDetails()
 
-    // Check if user is returning from login
     const isReturningFromLogin = searchParams.get('fromLogin') === 'true'
     if (isReturningFromLogin) {
       const pendingLetter = JSON.parse(localStorage.getItem('pendingLetter'))
       if (pendingLetter && pendingLetter.campaignId === params.id) {
         setMpEmail(pendingLetter.mpEmail)
-        setIsGenerating(pendingLetter.isGenerating)
+        setGeneratedResponse(pendingLetter.generatedResponse)
+        setGeneratedSubject(pendingLetter.generatedSubject)
         setFormData(JSON.parse(localStorage.getItem('formData')))
-        if (pendingLetter.isGenerating) {
-          generateLetter(JSON.parse(localStorage.getItem('formData')))
-        } else if (pendingLetter.generatedResponse) {
-          setGeneratedResponse(pendingLetter.generatedResponse)
-          setGeneratedSubject(pendingLetter.generatedSubject)
-        }
+        
+        localStorage.removeItem('pendingLetter')
+        localStorage.removeItem('formData')
       }
-      localStorage.removeItem('pendingLetter')
-      localStorage.removeItem('formData')
     }
   }, [params.id, searchParams, supabase.auth])
 
@@ -133,10 +128,10 @@ export default function LetterGeneratorPage({ params }) {
     localStorage.setItem('pendingLetter', JSON.stringify({
       campaignId: params.id,
       mpEmail,
-      isGenerating,
       generatedResponse,
       generatedSubject
     }))
+    localStorage.setItem('formData', JSON.stringify(formData))
 
     // Redirect to the Google login page
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -155,7 +150,7 @@ export default function LetterGeneratorPage({ params }) {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center">
       {campaignData ? (
-        (isGenerating || generatedResponse || error) ? (
+        (generatedResponse || error) ? (
           <ResponsePage 
             campaignId={params.id}
             campaignName={campaignData.campaign_name}

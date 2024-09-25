@@ -5,13 +5,18 @@ import { NextResponse } from 'next/server'
 export async function GET(request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  console.log(requestUrl);
+
   if (code) {
     const supabase = createRouteHandlerClient({ cookies })
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  // Instead of redirecting to the origin, redirect to the intended page
+  // Get the redirectTo parameter
   const redirectTo = requestUrl.searchParams.get('redirectTo') || '/'
-  return NextResponse.redirect(requestUrl.origin + redirectTo)
+  
+  // Append a query parameter to indicate the user is returning from login
+  const redirectUrl = new URL(redirectTo, requestUrl.origin)
+  redirectUrl.searchParams.set('fromLogin', 'true')
+
+  return NextResponse.redirect(redirectUrl)
 }
