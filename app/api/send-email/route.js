@@ -1,4 +1,4 @@
-Copyimport { google } from 'googleapis'
+import { google } from 'googleapis'
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
