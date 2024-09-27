@@ -52,7 +52,6 @@ export default function ResponsePage({
   const [emailSentMessage, setEmailSentMessage] = useState(null)
   const [hasBrackets, setHasBrackets] = useState(false)
   const [user, setUser] = useState(initialUser)
-  const [isLoading, setIsLoading] = useState(initialIsLoading)
   const supabase = createClientComponentClient()
 
   useEffect(() => {
@@ -116,7 +115,7 @@ export default function ResponsePage({
         throw new Error('Not logged in')
       }
 
-      const response = await fetch(`/api/send-email`, {
+      const response = await fetch(`/send-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
