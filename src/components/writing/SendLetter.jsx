@@ -51,6 +51,7 @@ export default function ResponsePage({
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [emailSentMessage, setEmailSentMessage] = useState(null)
   const [hasBrackets, setHasBrackets] = useState(false)
+  const [isLoading, setIsLoading] = useState(initialIsLoading)
   const [user, setUser] = useState(initialUser)
   const supabase = createClientComponentClient()
 
@@ -64,7 +65,7 @@ export default function ResponsePage({
         // Check for pending letter data (for users who just logged in)
         const pendingLetter = JSON.parse(localStorage.getItem('pendingLetter'))
         if (pendingLetter && pendingLetter.campaignId === campaignId) {
-          setResponse(pendingLetter.generatedResponse || initialResponse)
+          setResponse(pendingLetter.generatedResponse || initfialResponse)
           setEditableResponse(pendingLetter.generatedResponse || initialResponse)
           setSubject(pendingLetter.generatedSubject || initialSubject)
           setEditableSubject(pendingLetter.generatedSubject || initialSubject)
@@ -251,7 +252,7 @@ export default function ResponsePage({
   }, [response, subject]);
 
   const renderContent = () => {
-    if (isLoading || isGenerating) {
+    if (initialIsLoading || isGenerating) {
       return (
         <div className="flex flex-col items-center justify-center">
           <div className="w-10 h-10 border-t-2 border-b-2 border-primary rounded-full animate-spin mb-4"></div>
