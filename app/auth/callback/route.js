@@ -8,13 +8,41 @@ export async function GET(request) {
 
   if (code) {
     const supabase = createRouteHandlerClient({ cookies })
-    await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+    if (error) {
+      console.error('Error exchanging code for session:', error)
+      // Handle error appropriately
+    } else if (data && data.session) {
+      console.log('Session data:', JSON.stringify(data.session, null, 2))
+
+      const { access_token, refresh_token, expires_in, provider_token } = data.session
+
+      if (access_token && refresh_token) {
+        const { error: insertError } = await supabase
+          .from('oauth_tokens')
+          .upsert({
+            user_id: data.session.user.id,
+            access_token,
+            refresh_token,
+            expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
+            provider_token,
+          }, {
+            onConflict: 'user_id',
+          })
+
+        if (insertError) {
+          console.error('Error storing OAuth tokens:', insertError)
+        } else {
+          console.log('OAuth tokens stored successfully')
+        }
+      } else {
+        console.error('Missing access_token or refresh_token')
+      }
+    }
   }
 
-  // Get the redirectTo parameter
   const redirectTo = requestUrl.searchParams.get('redirectTo') || '/'
-  
-  // Append a query parameter to indicate the user is returning from login
   const redirectUrl = new URL(redirectTo, requestUrl.origin)
   redirectUrl.searchParams.set('fromLogin', 'true')
 
