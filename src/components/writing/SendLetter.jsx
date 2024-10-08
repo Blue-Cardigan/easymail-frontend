@@ -88,7 +88,7 @@ export default function ResponsePage({
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        scopes: 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email',
+        scopes: 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email https://mail.google.com',
         redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
         queryParams: {
           redirectTo: `/${campaignId}`, 
@@ -97,6 +97,7 @@ export default function ResponsePage({
         prompt: 'consent'
       }
     })
+
     if (error) {
       console.error('Error signing in with Google:', error)
     } else {
@@ -108,15 +109,9 @@ export default function ResponsePage({
     setIsSendingEmail(true)
     setError(null)
     setEmailSentMessage(null)
-
+  
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        throw new Error('Not logged in')
-      }
-
-      const response = await fetch(`/send-email`, {
+      const response = await fetch(`/api/send-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -127,11 +122,18 @@ export default function ResponsePage({
           body: editableResponse || response,
         }),
       })
-
+  
+      const data = await response.json()
+  
       if (!response.ok) {
-        throw new Error('Failed to send email')
+        if (data.needsReauth) {
+          // Prompt user to re-authenticate
+          await handleGoogleLogin()
+          return
+        }
+        throw new Error(data.error || 'Failed to send email')
       }
-
+  
       setEmailSentMessage('Email sent successfully!')
     } catch (error) {
       setError('Failed to send email. Please try again or use your email client.')
